@@ -1,35 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* 基礎樣式 */
+/* Base styles */
 html {
   scroll-behavior: smooth;
 }
 
 body {
   @apply antialiased;
+  font-family: 'Nunito', system-ui, sans-serif;
+  background: linear-gradient(135deg, #fdf2f8 0%, #faf5ff 50%, #f0fdfa 100%);
+  background-attachment: fixed;
 }
 
-/* 自訂滾動條樣式 */
+/* Custom scrollbar - cute style */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100;
+  @apply bg-pink-50 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
+  background: linear-gradient(180deg, #f9a8d4, #f472b6);
+  border-radius: 9999px;
+  border: 2px solid #fdf2f8;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
+  background: linear-gradient(180deg, #f472b6, #ec4899);
 }
 
-/* 數字輸入框去除上下箭頭 */
+/* Remove number input arrows */
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -40,7 +47,17 @@ input[type='number'] {
   -moz-appearance: textfield;
 }
 
-/* 表格響應式處理 */
+/* Cute form inputs */
+input, select, textarea {
+  @apply transition-all duration-200;
+}
+
+input:focus, select:focus, textarea:focus {
+  @apply ring-2 ring-pink-300 border-pink-300 outline-none;
+  box-shadow: 0 0 0 4px rgba(244, 114, 182, 0.1);
+}
+
+/* Responsive table */
 @media (max-width: 640px) {
   .table-responsive {
     display: block;
@@ -49,7 +66,7 @@ input[type='number'] {
   }
 }
 
-/* 動畫 */
+/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -61,15 +78,166 @@ input[type='number'] {
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-/* 卡片懸停效果 */
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.1);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.1);
+  }
+  70% {
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.5s ease-out forwards;
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Cute card styles */
+.card-cute {
+  @apply bg-white/90 backdrop-blur-sm rounded-3xl border border-pink-100;
+  box-shadow: 0 4px 20px -2px rgba(236, 72, 153, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-cute:hover {
+  @apply -translate-y-1;
+  box-shadow: 0 8px 30px -4px rgba(236, 72, 153, 0.2);
+  border-color: rgba(244, 114, 182, 0.3);
+}
+
+/* Card hover effect - legacy support */
 .card-hover {
-  @apply transition-all duration-200;
+  @apply transition-all duration-300;
 }
 
 .card-hover:hover {
-  @apply shadow-md -translate-y-0.5;
+  @apply -translate-y-1;
+  box-shadow: 0 8px 25px -5px rgba(236, 72, 153, 0.15);
+}
+
+/* Gradient text */
+.text-gradient-cute {
+  background: linear-gradient(135deg, #ec4899, #8b5cf6, #ec4899);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient 3s linear infinite;
+}
+
+@keyframes gradient {
+  0% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+  100% { background-position: 0% center; }
+}
+
+/* Cute button base */
+.btn-cute {
+  @apply px-5 py-2.5 rounded-2xl font-semibold transition-all duration-300;
+  box-shadow: 0 4px 15px -2px rgba(236, 72, 153, 0.25);
+}
+
+.btn-cute:hover {
+  @apply -translate-y-0.5;
+  box-shadow: 0 6px 20px -2px rgba(236, 72, 153, 0.35);
+}
+
+.btn-cute:active {
+  @apply translate-y-0;
+}
+
+.btn-cute-primary {
+  @apply btn-cute text-white;
+  background: linear-gradient(135deg, #f472b6, #ec4899, #db2777);
+}
+
+.btn-cute-primary:hover {
+  background: linear-gradient(135deg, #ec4899, #db2777, #be185d);
+}
+
+.btn-cute-secondary {
+  @apply btn-cute bg-white border-2 border-pink-200 text-pink-600;
+}
+
+.btn-cute-secondary:hover {
+  @apply bg-pink-50 border-pink-300;
+}
+
+/* Shimmer loading effect */
+.shimmer {
+  background: linear-gradient(90deg, #fce7f3 25%, #fbcfe8 50%, #fce7f3 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Cute placeholder */
+::placeholder {
+  @apply text-pink-300;
+}
+
+/* Selection color */
+::selection {
+  @apply bg-pink-200 text-pink-900;
+}
+
+/* Cute emoji decorations */
+.cute-emoji::before {
+  content: '';
+  position: absolute;
+  font-size: 1.5rem;
 }

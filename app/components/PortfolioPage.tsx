@@ -366,25 +366,31 @@ export default function PortfolioPage() {
   // SSR 保護
   if (!isClient) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center animate-bounce">
+            <span className="text-3xl">💖</span>
+          </div>
+          <p className="text-pink-400 font-medium">載入中...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-40">
+      <header className="bg-white/80 backdrop-blur-md shadow-soft border-b border-pink-100 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
+              <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-rose-500 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-200/50">
+                <span className="text-xl">🌸</span>
               </div>
-              <h1 className="text-lg font-bold text-gray-900">My Portfolio Helper</h1>
+              <div>
+                <h1 className="text-lg font-bold text-gradient-cute">My Portfolio</h1>
+                <p className="text-xs text-pink-400 hidden sm:block">可愛的投資小幫手</p>
+              </div>
             </div>
             <ProfileSelector
               profiles={profiles}
@@ -399,7 +405,7 @@ export default function PortfolioPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1">
         <div className="space-y-6">
           {/* Summary Cards */}
           <SummaryCards
@@ -422,11 +428,11 @@ export default function PortfolioPage() {
             <button
               onClick={handleRefreshQuotes}
               disabled={isLoadingQuotes || !activeProfile?.holdings.length}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium text-gray-700 shadow-sm"
+              className="btn-cute-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoadingQuotes ? (
                 <>
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-5 w-5 text-pink-500" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
@@ -434,9 +440,7 @@ export default function PortfolioPage() {
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+                  <span className="text-lg">🔄</span>
                   <span>更新報價</span>
                 </>
               )}
@@ -472,10 +476,10 @@ export default function PortfolioPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-100 mt-auto">
+      <footer className="bg-white/80 backdrop-blur-md border-t border-pink-100 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <p className="text-center text-sm text-gray-500">
-            本工具僅供參考，不構成任何投資建議。投資有風險，決策請謹慎。
+          <p className="text-center text-sm text-pink-400">
+            本工具僅供參考，不構成任何投資建議。投資有風險，決策請謹慎喔～ 💕
           </p>
         </div>
       </footer>

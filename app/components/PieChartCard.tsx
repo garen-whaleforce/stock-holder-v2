@@ -16,27 +16,34 @@ interface ChartDataItem {
   color: string;
 }
 
-// 顏色調色盤
+// 可愛的粉嫩色調色盤
 const COLORS = [
-  '#3B82F6', // blue-500
-  '#10B981', // emerald-500
-  '#F59E0B', // amber-500
-  '#EF4444', // red-500
-  '#8B5CF6', // violet-500
-  '#EC4899', // pink-500
-  '#06B6D4', // cyan-500
-  '#84CC16', // lime-500
-  '#F97316', // orange-500
-  '#6366F1', // indigo-500
+  '#F472B6', // pink-400
+  '#A78BFA', // violet-400
+  '#60A5FA', // blue-400
+  '#34D399', // emerald-400
+  '#FBBF24', // amber-400
+  '#FB923C', // orange-400
+  '#F87171', // red-400
+  '#2DD4BF', // teal-400
+  '#818CF8', // indigo-400
+  '#E879F9', // fuchsia-400
 ];
 
 export default function PieChartCard({ holdings, isLoading }: PieChartCardProps) {
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">持股佔比</h3>
+      <div className="card-cute p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
+            <span className="text-xl">🍰</span>
+          </div>
+          <h3 className="text-lg font-bold text-gray-800">持股佔比</h3>
+        </div>
         <div className="h-64 flex items-center justify-center">
-          <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"></div>
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center animate-bounce">
+            <span className="text-2xl">💫</span>
+          </div>
         </div>
       </div>
     );
@@ -44,14 +51,18 @@ export default function PieChartCard({ holdings, isLoading }: PieChartCardProps)
 
   if (holdings.length === 0 || holdings.every((h) => h.marketValue === 0)) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">持股佔比</h3>
-        <div className="h-64 flex flex-col items-center justify-center text-gray-400">
-          <svg className="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-          </svg>
-          <p>請先新增持股並更新報價</p>
+      <div className="card-cute p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
+            <span className="text-xl">🍰</span>
+          </div>
+          <h3 className="text-lg font-bold text-gray-800">持股佔比</h3>
+        </div>
+        <div className="h-64 flex flex-col items-center justify-center">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center mb-4">
+            <span className="text-4xl">📊</span>
+          </div>
+          <p className="text-pink-400 font-medium">請先新增持股並更新報價</p>
         </div>
       </div>
     );
@@ -73,12 +84,12 @@ export default function PieChartCard({ holdings, isLoading }: PieChartCardProps)
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white shadow-lg rounded-lg px-3 py-2 border border-gray-200">
-          <p className="font-medium text-gray-900">{data.name}</p>
-          <p className="text-sm text-gray-600">
+        <div className="bg-white/95 backdrop-blur-sm shadow-lg rounded-2xl px-4 py-3 border-2 border-pink-100">
+          <p className="font-bold text-gray-800">{data.name}</p>
+          <p className="text-sm text-pink-500 font-medium">
             市值: {formatCurrency(data.value)}
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-purple-500 font-medium">
             佔比: {(data.weight * 100).toFixed(1)}%
           </p>
         </div>
@@ -94,28 +105,33 @@ export default function PieChartCard({ holdings, isLoading }: PieChartCardProps)
     if (!payload) return null;
 
     return (
-      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-4">
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4">
         {payload.slice(0, 6).map((entry: { value: string; color?: string; payload?: ChartDataItem }, index: number) => (
-          <div key={index} className="flex items-center text-sm">
+          <div key={index} className="flex items-center text-sm bg-white/50 rounded-full px-3 py-1">
             <div
-              className="w-3 h-3 rounded-full mr-1.5"
+              className="w-3 h-3 rounded-full mr-2"
               style={{ backgroundColor: entry.color || '#ccc' }}
             />
-            <span className="text-gray-600">
-              {entry.value} ({entry.payload ? (entry.payload.weight * 100).toFixed(1) : 0}%)
+            <span className="text-gray-700 font-medium">
+              {entry.value} <span className="text-pink-400">({entry.payload ? (entry.payload.weight * 100).toFixed(1) : 0}%)</span>
             </span>
           </div>
         ))}
         {payload.length > 6 && (
-          <span className="text-sm text-gray-400">+{payload.length - 6} 其他</span>
+          <span className="text-sm text-pink-400 font-medium">+{payload.length - 6} 其他</span>
         )}
       </div>
     );
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">持股佔比</h3>
+    <div className="card-cute p-6">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-lg shadow-purple-200/50">
+          <span className="text-xl">🍰</span>
+        </div>
+        <h3 className="text-lg font-bold text-gray-800">持股佔比</h3>
+      </div>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -123,10 +139,11 @@ export default function PieChartCard({ holdings, isLoading }: PieChartCardProps)
               data={chartData}
               cx="50%"
               cy="50%"
-              innerRadius={50}
-              outerRadius={80}
-              paddingAngle={2}
+              innerRadius={45}
+              outerRadius={75}
+              paddingAngle={3}
               dataKey="value"
+              stroke="none"
             >
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
