@@ -16,34 +16,35 @@ interface ChartDataItem {
   color: string;
 }
 
-// 可愛的粉嫩色調色盤
+// Professional color palette
 const COLORS = [
-  '#F472B6', // pink-400
-  '#A78BFA', // violet-400
-  '#60A5FA', // blue-400
-  '#34D399', // emerald-400
-  '#FBBF24', // amber-400
-  '#FB923C', // orange-400
-  '#F87171', // red-400
-  '#2DD4BF', // teal-400
-  '#818CF8', // indigo-400
-  '#E879F9', // fuchsia-400
+  '#102a43', // navy-900
+  '#334e68', // navy-700
+  '#486581', // navy-600
+  '#627d98', // navy-500
+  '#829ab1', // navy-400
+  '#f59e0b', // gold-500
+  '#10b981', // success-500
+  '#ef4444', // danger-500
+  '#64748b', // slate-500
+  '#94a3b8', // slate-400
 ];
 
 export default function PieChartCard({ holdings, isLoading }: PieChartCardProps) {
   if (isLoading) {
     return (
-      <div className="card-cute p-6">
+      <div className="card p-5">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-            <span className="text-xl">🍰</span>
+          <div className="w-10 h-10 rounded-lg bg-navy-100 flex items-center justify-center">
+            <svg className="w-5 h-5 text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+            </svg>
           </div>
-          <h3 className="text-lg font-bold text-gray-800">持股佔比</h3>
+          <h3 className="font-semibold text-slate-800">持股配置</h3>
         </div>
         <div className="h-64 flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center animate-bounce">
-            <span className="text-2xl">💫</span>
-          </div>
+          <div className="w-10 h-10 rounded-full border-2 border-navy-200 border-t-navy-600 animate-spin"></div>
         </div>
       </div>
     );
@@ -51,24 +52,28 @@ export default function PieChartCard({ holdings, isLoading }: PieChartCardProps)
 
   if (holdings.length === 0 || holdings.every((h) => h.marketValue === 0)) {
     return (
-      <div className="card-cute p-6">
+      <div className="card p-5">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-            <span className="text-xl">🍰</span>
+          <div className="w-10 h-10 rounded-lg bg-navy-100 flex items-center justify-center">
+            <svg className="w-5 h-5 text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+            </svg>
           </div>
-          <h3 className="text-lg font-bold text-gray-800">持股佔比</h3>
+          <h3 className="font-semibold text-slate-800">持股配置</h3>
         </div>
         <div className="h-64 flex flex-col items-center justify-center">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center mb-4">
-            <span className="text-4xl">📊</span>
+          <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
           </div>
-          <p className="text-pink-400 font-medium">請先新增持股並更新報價</p>
+          <p className="text-slate-500 font-medium">新增持股以查看配置</p>
         </div>
       </div>
     );
   }
 
-  // 準備圖表資料，依市值排序
   const chartData = holdings
     .filter((h) => h.marketValue > 0)
     .sort((a, b) => b.marketValue - a.marketValue)
@@ -79,18 +84,17 @@ export default function PieChartCard({ holdings, isLoading }: PieChartCardProps)
       color: COLORS[index % COLORS.length],
     }));
 
-  // 自訂 Tooltip
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; weight: number } }> }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white/95 backdrop-blur-sm shadow-lg rounded-2xl px-4 py-3 border-2 border-pink-100">
-          <p className="font-bold text-gray-800">{data.name}</p>
-          <p className="text-sm text-pink-500 font-medium">
-            市值: {formatCurrency(data.value)}
+        <div className="bg-white shadow-lg rounded-lg px-4 py-3 border border-slate-200">
+          <p className="font-semibold text-slate-800">{data.name}</p>
+          <p className="text-sm text-slate-600">
+            市值：{formatCurrency(data.value)}
           </p>
-          <p className="text-sm text-purple-500 font-medium">
-            佔比: {(data.weight * 100).toFixed(1)}%
+          <p className="text-sm text-slate-600">
+            權重：{(data.weight * 100).toFixed(1)}%
           </p>
         </div>
       );
@@ -98,7 +102,6 @@ export default function PieChartCard({ holdings, isLoading }: PieChartCardProps)
     return null;
   };
 
-  // 自訂 Legend
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const renderLegend = (props: any) => {
     const { payload } = props;
@@ -107,30 +110,33 @@ export default function PieChartCard({ holdings, isLoading }: PieChartCardProps)
     return (
       <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4">
         {payload.slice(0, 6).map((entry: { value: string; color?: string; payload?: ChartDataItem }, index: number) => (
-          <div key={index} className="flex items-center text-sm bg-white/50 rounded-full px-3 py-1">
+          <div key={index} className="flex items-center text-sm">
             <div
-              className="w-3 h-3 rounded-full mr-2"
+              className="w-3 h-3 rounded mr-2"
               style={{ backgroundColor: entry.color || '#ccc' }}
             />
-            <span className="text-gray-700 font-medium">
-              {entry.value} <span className="text-pink-400">({entry.payload ? (entry.payload.weight * 100).toFixed(1) : 0}%)</span>
+            <span className="text-slate-600 font-medium">
+              {entry.value} <span className="text-slate-400">({entry.payload ? (entry.payload.weight * 100).toFixed(1) : 0}%)</span>
             </span>
           </div>
         ))}
         {payload.length > 6 && (
-          <span className="text-sm text-pink-400 font-medium">+{payload.length - 6} 其他</span>
+          <span className="text-sm text-slate-400">+{payload.length - 6} more</span>
         )}
       </div>
     );
   };
 
   return (
-    <div className="card-cute p-6">
+    <div className="card p-5">
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-lg shadow-purple-200/50">
-          <span className="text-xl">🍰</span>
+        <div className="w-10 h-10 rounded-lg bg-navy-100 flex items-center justify-center">
+          <svg className="w-5 h-5 text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+          </svg>
         </div>
-        <h3 className="text-lg font-bold text-gray-800">持股佔比</h3>
+        <h3 className="font-semibold text-slate-800">持股配置</h3>
       </div>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
@@ -141,7 +147,7 @@ export default function PieChartCard({ holdings, isLoading }: PieChartCardProps)
               cy="50%"
               innerRadius={45}
               outerRadius={75}
-              paddingAngle={3}
+              paddingAngle={2}
               dataKey="value"
               stroke="none"
             >

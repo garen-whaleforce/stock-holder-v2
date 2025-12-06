@@ -1,6 +1,7 @@
 'use client';
 
-import { PortfolioSummary, Currency, MarketBreakdown } from '@/lib/types';
+import { useState } from 'react';
+import { PortfolioSummary, Currency } from '@/lib/types';
 import { formatCurrency, formatPercent } from '@/lib/portfolio';
 
 interface SummaryCardsProps {
@@ -12,13 +13,33 @@ interface SummaryCardsProps {
 }
 
 export default function SummaryCards({ summary, isLoading, baseCurrency = 'USD', exchangeRate, isMixed = false }: SummaryCardsProps) {
+  const [displayCurrency, setDisplayCurrency] = useState<Currency>(baseCurrency);
+
+  // 轉換金額到顯示幣別
+  const convertAmount = (amount: number): number => {
+    if (!exchangeRate) return amount;
+    if (baseCurrency === displayCurrency) return amount;
+
+    // baseCurrency -> displayCurrency
+    if (baseCurrency === 'USD' && displayCurrency === 'TWD') {
+      return amount * exchangeRate;
+    }
+    if (baseCurrency === 'TWD' && displayCurrency === 'USD') {
+      return amount / exchangeRate;
+    }
+    return amount;
+  };
+
+  const toggleCurrency = () => {
+    setDisplayCurrency(prev => prev === 'USD' ? 'TWD' : 'USD');
+  };
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="card-cute p-6">
-            <div className="shimmer h-4 rounded-full w-20 mb-4"></div>
-            <div className="shimmer h-8 rounded-full w-32"></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="card p-5">
+            <div className="shimmer h-4 rounded w-24 mb-3"></div>
+            <div className="shimmer h-8 rounded w-32"></div>
           </div>
         ))}
       </div>
@@ -27,169 +48,186 @@ export default function SummaryCards({ summary, isLoading, baseCurrency = 'USD',
 
   if (!summary) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div className="card-cute p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-2xl">💰</span>
-            <span className="text-sm font-medium text-pink-400">總市值</span>
-          </div>
-          <div className="text-2xl font-bold text-gray-400">$0.00</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="card p-5">
+          <p className="stat-label mb-2">總市值</p>
+          <p className="stat-value text-slate-400">$0.00</p>
         </div>
-        <div className="card-cute p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-2xl">📈</span>
-            <span className="text-sm font-medium text-pink-400">未實現損益</span>
-          </div>
-          <div className="text-2xl font-bold text-gray-400">--</div>
+        <div className="card p-5">
+          <p className="stat-label mb-2">未實現損益</p>
+          <p className="stat-value text-slate-400">--</p>
         </div>
-        <div className="card-cute p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-2xl">🎯</span>
-            <span className="text-sm font-medium text-pink-400">前三大持股集中度</span>
-          </div>
-          <div className="text-2xl font-bold text-gray-400">--</div>
+        <div className="card p-5">
+          <p className="stat-label mb-2">前三大集中度</p>
+          <p className="stat-value text-slate-400">--</p>
+        </div>
+        <div className="card p-5">
+          <p className="stat-label mb-2">持股數量</p>
+          <p className="stat-value text-slate-400">0</p>
         </div>
       </div>
     );
   }
 
   const isProfit = summary.totalUnrealizedPnL >= 0;
-  const pnlColor = isProfit ? 'text-emerald-500' : 'text-rose-500';
-  const pnlBgClass = isProfit
-    ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200/50'
-    : 'bg-gradient-to-br from-rose-50 to-pink-50 border-rose-200/50';
 
-  // 集中度警示顏色
-  const getConcentrationColor = (concentration: number) => {
-    if (concentration > 0.7) return 'text-rose-500';
-    if (concentration > 0.5) return 'text-amber-500';
-    return 'text-emerald-500';
+  // 集中度警示
+  const getConcentrationStatus = (concentration: number) => {
+    if (concentration > 0.7) return { color: 'text-danger-600', badge: 'badge-danger', label: '高風險' };
+    if (concentration > 0.5) return { color: 'text-gold-600', badge: 'badge-warning', label: '中等' };
+    return { color: 'text-success-600', badge: 'badge-success', label: '分散良好' };
   };
 
-  const getConcentrationEmoji = (concentration: number) => {
-    if (concentration > 0.7) return '⚠️';
-    if (concentration > 0.5) return '🤔';
-    return '✨';
-  };
+  const concentrationStatus = getConcentrationStatus(summary.concentration);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-      {/* 總市值 */}
-      <div className="card-cute p-6 bg-gradient-to-br from-white to-pink-50/50">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-400 to-rose-400 flex items-center justify-center shadow-lg shadow-pink-200/50">
-            <span className="text-xl">💰</span>
-          </div>
-          <span className="text-sm font-semibold text-pink-500">總市值</span>
-        </div>
-        <div className="text-2xl font-extrabold text-gray-800">
-          {formatCurrency(summary.totalMarketValue, baseCurrency)}
-        </div>
-        <div className="text-xs text-pink-400 mt-2 font-medium">
-          成本: {formatCurrency(summary.totalCost, baseCurrency)}
-        </div>
-        {/* 混合帳戶顯示市場分類 */}
-        {isMixed && (summary.usBreakdown || summary.twBreakdown) && (
-          <div className="mt-4 pt-4 border-t border-pink-100 space-y-2">
-            {summary.usBreakdown && (
-              <div className="flex justify-between text-xs">
-                <span className="text-blue-500 font-medium flex items-center gap-1">
-                  <span>🇺🇸</span> 美股
-                </span>
-                <span className="text-gray-700 font-semibold">{formatCurrency(summary.usBreakdown.marketValue, 'USD')}</span>
+    <div className="space-y-4">
+      {/* Main Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Value */}
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="stat-label">總市值</p>
+            <div className="flex items-center gap-2">
+              {exchangeRate && (
+                <button
+                  onClick={toggleCurrency}
+                  className="px-2 py-1 text-xs font-semibold rounded-lg transition-all bg-navy-100 text-navy-700 hover:bg-navy-200"
+                  title="切換幣別"
+                >
+                  {displayCurrency === 'USD' ? '$ USD' : 'NT$ TWD'}
+                </button>
+              )}
+              <div className="w-8 h-8 rounded-lg bg-navy-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
-            )}
-            {summary.twBreakdown && (
-              <div className="flex justify-between text-xs">
-                <span className="text-green-500 font-medium flex items-center gap-1">
-                  <span>🇹🇼</span> 台股
-                </span>
-                <span className="text-gray-700 font-semibold">{formatCurrency(summary.twBreakdown.marketValue, 'TWD')}</span>
-              </div>
-            )}
+            </div>
           </div>
-        )}
-      </div>
+          <p className="stat-value">{formatCurrency(convertAmount(summary.totalMarketValue), displayCurrency)}</p>
+          <p className="text-xs text-slate-500 mt-2">
+            成本：{formatCurrency(convertAmount(summary.totalCost), displayCurrency)}
+          </p>
+        </div>
 
-      {/* 未實現損益 */}
-      <div className={`card-cute p-6 ${pnlBgClass}`}>
-        <div className="flex items-center gap-2 mb-3">
-          <div className={`w-10 h-10 rounded-2xl ${isProfit ? 'bg-gradient-to-br from-emerald-400 to-teal-400' : 'bg-gradient-to-br from-rose-400 to-pink-400'} flex items-center justify-center shadow-lg ${isProfit ? 'shadow-emerald-200/50' : 'shadow-rose-200/50'}`}>
-            <span className="text-xl">{isProfit ? '📈' : '📉'}</span>
+        {/* P&L */}
+        <div className={`card p-5 ${isProfit ? 'border-success-200 bg-success-50/30' : 'border-danger-200 bg-danger-50/30'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="stat-label">未實現損益</p>
+            <div className={`w-8 h-8 rounded-lg ${isProfit ? 'bg-success-100' : 'bg-danger-100'} flex items-center justify-center`}>
+              {isProfit ? (
+                <svg className="w-4 h-4 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4 text-danger-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                </svg>
+              )}
+            </div>
           </div>
-          <span className={`text-sm font-semibold ${isProfit ? 'text-emerald-600' : 'text-rose-500'}`}>未實現損益</span>
+          <p className={`stat-value ${isProfit ? 'text-success-600' : 'text-danger-600'}`}>
+            {isProfit ? '+' : ''}{formatCurrency(convertAmount(summary.totalUnrealizedPnL), displayCurrency)}
+          </p>
+          <p className={`text-sm font-semibold mt-2 ${isProfit ? 'text-success-600' : 'text-danger-600'}`}>
+            {formatPercent(summary.totalUnrealizedPnLPercent)}
+          </p>
         </div>
-        <div className={`text-2xl font-extrabold ${pnlColor}`}>
-          {isProfit ? '+' : ''}{formatCurrency(summary.totalUnrealizedPnL, baseCurrency)}
-        </div>
-        <div className={`text-sm font-bold ${pnlColor} mt-2`}>
-          {formatPercent(summary.totalUnrealizedPnLPercent)}
-        </div>
-        {/* 混合帳戶顯示市場分類損益 */}
-        {isMixed && (summary.usBreakdown || summary.twBreakdown) && (
-          <div className="mt-4 pt-4 border-t border-gray-200/50 space-y-2">
-            {summary.usBreakdown && (
-              <div className="flex justify-between text-xs">
-                <span className="text-blue-500 font-medium flex items-center gap-1">
-                  <span>🇺🇸</span> 美股
-                </span>
-                <span className={`font-semibold ${summary.usBreakdown.unrealizedPnL >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                  {summary.usBreakdown.unrealizedPnL >= 0 ? '+' : ''}{formatCurrency(summary.usBreakdown.unrealizedPnL, 'USD')}
-                </span>
-              </div>
-            )}
-            {summary.twBreakdown && (
-              <div className="flex justify-between text-xs">
-                <span className="text-green-500 font-medium flex items-center gap-1">
-                  <span>🇹🇼</span> 台股
-                </span>
-                <span className={`font-semibold ${summary.twBreakdown.unrealizedPnL >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                  {summary.twBreakdown.unrealizedPnL >= 0 ? '+' : ''}{formatCurrency(summary.twBreakdown.unrealizedPnL, 'TWD')}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
-      {/* 集中度 */}
-      <div className="card-cute p-6 bg-gradient-to-br from-white to-purple-50/50">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-400 to-violet-400 flex items-center justify-center shadow-lg shadow-purple-200/50">
-            <span className="text-xl">🎯</span>
+        {/* Concentration */}
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="stat-label">前三大集中度</p>
+            <span className={concentrationStatus.badge}>{concentrationStatus.label}</span>
           </div>
-          <span className="text-sm font-semibold text-purple-500">前三大持股集中度</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`text-2xl font-extrabold ${getConcentrationColor(summary.concentration)}`}>
+          <p className={`stat-value ${concentrationStatus.color}`}>
             {(summary.concentration * 100).toFixed(1)}%
-          </span>
-          <span className="text-xl">{getConcentrationEmoji(summary.concentration)}</span>
+          </p>
+          <p className="text-xs text-slate-500 mt-2">
+            {summary.concentration > 0.5 ? '建議分散投資' : '分散良好'}
+          </p>
         </div>
-        <div className="text-xs text-purple-400 mt-2 font-medium">
-          {summary.concentration > 0.5 ? '建議分散投資喔～' : '分散度很棒呢！'}
+
+        {/* Holdings Count */}
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="stat-label">持股數量</p>
+            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+              <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+          </div>
+          <p className="stat-value">{summary.topHoldings?.length || 0}</p>
+          <p className="text-xs text-slate-500 mt-2">目前持有</p>
         </div>
       </div>
 
-      {/* 匯率資訊（混合帳戶） */}
-      {isMixed && exchangeRate && (
-        <div className="sm:col-span-2 lg:col-span-3 card-cute p-5 bg-gradient-to-r from-blue-50/80 via-indigo-50/80 to-purple-50/80">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center shadow-lg shadow-blue-200/50">
-                <span className="text-2xl">💱</span>
+      {/* Market Breakdown for Mixed Account */}
+      {isMixed && (summary.usBreakdown || summary.twBreakdown) && (
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-navy-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
               <div>
-                <div className="text-sm font-bold text-indigo-600">混合帳戶匯率</div>
-                <div className="text-xs text-indigo-400">所有市值已轉換為 {baseCurrency}</div>
+                <p className="font-semibold text-slate-800">市場分布</p>
+                <p className="text-xs text-slate-500">多市場投資組合概覽</p>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-xl font-extrabold text-indigo-600">
-                1 USD = {exchangeRate.toFixed(2)} TWD
+            {exchangeRate && (
+              <div className="text-right">
+                <p className="text-sm font-semibold text-slate-800">1 USD = {exchangeRate.toFixed(2)} TWD</p>
+                <p className="text-xs text-slate-500">匯率</p>
               </div>
-              <div className="text-xs text-indigo-400 font-medium">即時匯率</div>
-            </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {summary.usBreakdown && (
+              <div className="p-4 bg-slate-50 rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">US</span>
+                  <span className="text-sm font-medium text-slate-600">美股市場</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-500">市值</span>
+                    <span className="text-sm font-semibold text-slate-800">{formatCurrency(summary.usBreakdown.marketValue, 'USD')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-500">損益</span>
+                    <span className={`text-sm font-semibold ${summary.usBreakdown.unrealizedPnL >= 0 ? 'text-success-600' : 'text-danger-600'}`}>
+                      {summary.usBreakdown.unrealizedPnL >= 0 ? '+' : ''}{formatCurrency(summary.usBreakdown.unrealizedPnL, 'USD')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            {summary.twBreakdown && (
+              <div className="p-4 bg-slate-50 rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">TW</span>
+                  <span className="text-sm font-medium text-slate-600">台股市場</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-500">市值</span>
+                    <span className="text-sm font-semibold text-slate-800">{formatCurrency(summary.twBreakdown.marketValue, 'TWD')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-500">損益</span>
+                    <span className={`text-sm font-semibold ${summary.twBreakdown.unrealizedPnL >= 0 ? 'text-success-600' : 'text-danger-600'}`}>
+                      {summary.twBreakdown.unrealizedPnL >= 0 ? '+' : ''}{formatCurrency(summary.twBreakdown.unrealizedPnL, 'TWD')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -81,52 +81,71 @@ export async function getPortfolioAdvice(portfolio: PortfolioPayload): Promise<s
 
   const userContent = formatPortfolioForAI(portfolio);
 
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'api-key': apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userContent },
-        ],
-        temperature: 0.5,
-        max_completion_tokens: 1500,
-      }),
-      signal: AbortSignal.timeout(30000),
-    });
+  const maxRetries = 3;
+  let lastError: Error | null = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Azure OpenAI API 錯誤: ${response.status} - ${errorText}`);
-    }
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userContent },
+          ],
+          temperature: 0.5,
+          max_completion_tokens: 8000,
+        }),
+        signal: AbortSignal.timeout(120000),
+      });
 
-    const data = await response.json();
-    console.log('Azure OpenAI response:', JSON.stringify(data, null, 2));
-
-    if (!data.choices || data.choices.length === 0) {
-      throw new Error('Azure OpenAI 沒有回傳任何內容');
-    }
-
-    const content = data.choices[0].message?.content;
-
-    if (!content) {
-      // 檢查是否因為內容過濾被拒絕
-      const finishReason = data.choices[0].finish_reason;
-      if (finishReason === 'content_filter') {
-        throw new Error('內容被 Azure 內容過濾器攔截，請調整投資組合資料後重試');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Azure OpenAI API 錯誤: ${response.status} - ${errorText}`);
       }
-      throw new Error(`Azure OpenAI 回傳空內容 (finish_reason: ${finishReason})`);
-    }
 
-    return content;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`獲取 AI 建議失敗: ${error.message}`);
+      const data = await response.json();
+      console.log(`Azure OpenAI response (attempt ${attempt}):`, JSON.stringify(data, null, 2));
+
+      if (!data.choices || data.choices.length === 0) {
+        throw new Error('Azure OpenAI 沒有回傳任何內容');
+      }
+
+      const content = data.choices[0].message?.content;
+
+      if (!content) {
+        // 檢查是否因為內容過濾被拒絕
+        const finishReason = data.choices[0].finish_reason;
+        if (finishReason === 'content_filter') {
+          throw new Error('內容被 Azure 內容過濾器攔截，請調整投資組合資料後重試');
+        }
+        // 空內容但不是 content_filter，可重試
+        throw new Error(`Azure OpenAI 回傳空內容 (finish_reason: ${finishReason})`);
+      }
+
+      return content;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('未知錯誤');
+      console.warn(`Azure OpenAI 請求失敗 (attempt ${attempt}/${maxRetries}):`, lastError.message);
+
+      // 如果是 content_filter 錯誤，不重試
+      if (lastError.message.includes('內容過濾器')) {
+        break;
+      }
+
+      // 最後一次嘗試失敗則拋出錯誤
+      if (attempt === maxRetries) {
+        break;
+      }
+
+      // 等待後重試（指數退避）
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
     }
-    throw new Error('獲取 AI 建議時發生未知錯誤');
   }
+
+  throw new Error(`獲取 AI 建議失敗: ${lastError?.message || '未知錯誤'}`)
 }

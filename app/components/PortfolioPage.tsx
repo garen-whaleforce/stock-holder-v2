@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Profile, Holding, HoldingWithMetrics, PortfolioSummary, Quote, StoredData, HoldingMarket, RiskLevel } from '@/lib/types';
 import { loadFromStorage, saveToStorage, updatePriceCache, getAllCachedPrices } from '@/lib/storage';
@@ -17,11 +17,11 @@ import SummaryCards from './SummaryCards';
 import AddHoldingForm from './AddHoldingForm';
 import HoldingsTable from './HoldingsTable';
 import PieChartCard from './PieChartCard';
+import ChartsSection from './ChartsSection';
 import AdvicePanel from './AdvicePanel';
 import Toast from './Toast';
 
 export default function PortfolioPage() {
-  // 狀態
   const [isClient, setIsClient] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfileId, setActiveProfileId] = useState<string>('');
@@ -34,13 +34,12 @@ export default function PortfolioPage() {
   const [advice, setAdvice] = useState<string | null>(null);
   const [adviceError, setAdviceError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [exchangeRate, setExchangeRate] = useState<number>(32); // USD/TWD 預設匯率
+  const [exchangeRate, setExchangeRate] = useState<number>(32);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 取得當前選中的 Profile
   const activeProfile = profiles.find((p) => p.id === activeProfileId);
   const isMixed = activeProfile?.market === 'MIXED';
 
-  // 獲取 USD/TWD 匯率
   const fetchExchangeRate = useCallback(async () => {
     try {
       const response = await fetch('/api/exchange-rate');
@@ -49,34 +48,28 @@ export default function PortfolioPage() {
         setExchangeRate(data.rate);
       }
     } catch (error) {
-      console.error('獲取匯率失敗:', error);
+      console.error('Failed to fetch exchange rate:', error);
     }
   }, []);
 
-  // 初始化：從 localStorage 讀取資料
   useEffect(() => {
     setIsClient(true);
     const data = loadFromStorage();
     setProfiles(data.profiles);
     setActiveProfileId(data.activeProfileId);
-
-    // 讀取快取的價格
     const cached = getAllCachedPrices();
     setPriceMap(cached);
   }, []);
 
-  // 混合帳戶時獲取匯率
   useEffect(() => {
     if (isMixed) {
       fetchExchangeRate();
     }
   }, [isMixed, fetchExchangeRate]);
 
-  // 當 Profile 或價格變更時，重新計算指標
   useEffect(() => {
     if (!activeProfile) return;
 
-    // 更新名稱
     const updatedHoldings = activeProfile.holdings.map((h) => ({
       ...h,
       name: nameMap[h.symbol] || h.name || h.symbol,
@@ -95,7 +88,6 @@ export default function PortfolioPage() {
     setSummary(portfolioSummary);
   }, [activeProfile, priceMap, nameMap, exchangeRate, isMixed]);
 
-  // 儲存資料到 localStorage
   const saveData = useCallback((newProfiles: Profile[], newActiveId: string) => {
     const data: StoredData = {
       profiles: newProfiles,
@@ -107,12 +99,10 @@ export default function PortfolioPage() {
     setActiveProfileId(newActiveId);
   }, []);
 
-  // 顯示 Toast
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
   };
 
-  // 切換 Profile
   const handleSelectProfile = (profileId: string) => {
     setActiveProfileId(profileId);
     const data = loadFromStorage();
@@ -122,29 +112,25 @@ export default function PortfolioPage() {
     setAdviceError(null);
   };
 
-  // 建立新 Profile
   const handleCreateProfile = (profile: Profile) => {
     const newProfiles = [...profiles, profile];
     saveData(newProfiles, profile.id);
-    showToast('已建立新組合');
+    showToast('Portfolio created');
   };
 
-  // 刪除 Profile
   const handleDeleteProfile = (profileId: string) => {
     const newProfiles = profiles.filter((p) => p.id !== profileId);
     const newActiveId = newProfiles[0]?.id || '';
     saveData(newProfiles, newActiveId);
-    showToast('已刪除組合');
+    showToast('Portfolio deleted');
   };
 
-  // 更新 Profile
   const handleUpdateProfile = (profile: Profile) => {
     const newProfiles = profiles.map((p) => (p.id === profile.id ? profile : p));
     saveData(newProfiles, activeProfileId);
-    showToast('已更新組合設定');
+    showToast('Portfolio updated');
   };
 
-  // 更新風險偏好
   const handleRiskLevelChange = (riskLevel: RiskLevel) => {
     if (!activeProfile) return;
     const updatedProfile = { ...activeProfile, riskLevel };
@@ -152,16 +138,13 @@ export default function PortfolioPage() {
     saveData(newProfiles, activeProfileId);
   };
 
-  // 新增持股
   const handleAddHolding = async (symbol: string, quantity: number, costBasis: number, holdingMarket?: HoldingMarket) => {
     if (!activeProfile) return;
 
-    // 檢查是否已存在相同股票
     const existingIndex = activeProfile.holdings.findIndex((h) => h.symbol === symbol);
 
     let updatedHoldings: Holding[];
     if (existingIndex >= 0) {
-      // 如果存在，更新數量和成本
       const existing = activeProfile.holdings[existingIndex];
       const totalQuantity = existing.quantity + quantity;
       const totalCost = existing.costBasis * existing.quantity + costBasis * quantity;
@@ -174,14 +157,13 @@ export default function PortfolioPage() {
         costBasis: newCostBasis,
       };
     } else {
-      // 新增持股
       const newHolding: Holding = {
         id: uuidv4(),
         symbol,
         name: nameMap[symbol] || symbol,
         quantity,
         costBasis,
-        market: holdingMarket, // 混合帳戶時記錄該持股所屬市場
+        market: holdingMarket,
       };
       updatedHoldings = [...activeProfile.holdings, newHolding];
     }
@@ -189,15 +171,13 @@ export default function PortfolioPage() {
     const updatedProfile = { ...activeProfile, holdings: updatedHoldings };
     const newProfiles = profiles.map((p) => (p.id === activeProfile.id ? updatedProfile : p));
     saveData(newProfiles, activeProfileId);
-    showToast(`已${existingIndex >= 0 ? '更新' : '新增'} ${symbol}`);
+    showToast(`${existingIndex >= 0 ? 'Updated' : 'Added'} ${symbol}`);
 
-    // 自動獲取新股票的報價
     if (!priceMap[symbol]) {
       await fetchQuotesForSymbols([symbol], holdingMarket);
     }
   };
 
-  // 編輯持股
   const handleEditHolding = (holding: Holding) => {
     if (!activeProfile) return;
 
@@ -207,10 +187,9 @@ export default function PortfolioPage() {
     const updatedProfile = { ...activeProfile, holdings: updatedHoldings };
     const newProfiles = profiles.map((p) => (p.id === activeProfile.id ? updatedProfile : p));
     saveData(newProfiles, activeProfileId);
-    showToast('已更新持股');
+    showToast('Position updated');
   };
 
-  // 刪除持股
   const handleDeleteHolding = (id: string) => {
     if (!activeProfile) return;
 
@@ -218,10 +197,9 @@ export default function PortfolioPage() {
     const updatedProfile = { ...activeProfile, holdings: updatedHoldings };
     const newProfiles = profiles.map((p) => (p.id === activeProfile.id ? updatedProfile : p));
     saveData(newProfiles, activeProfileId);
-    showToast('已刪除持股');
+    showToast('持股已刪除');
   };
 
-  // 獲取報價
   const fetchQuotesForSymbols = async (symbols: string[], holdingMarket?: HoldingMarket) => {
     if (symbols.length === 0 || !activeProfile) return;
 
@@ -230,16 +208,13 @@ export default function PortfolioPage() {
       let requestBody: Record<string, unknown>;
 
       if (activeProfile.market === 'MIXED') {
-        // 混合帳戶：分離美股和台股
         if (holdingMarket) {
-          // 單一股票請求（從 handleAddHolding）
           if (holdingMarket === 'US') {
             requestBody = { market: 'MIXED', usSymbols: symbols, twSymbols: [] };
           } else {
             requestBody = { market: 'MIXED', usSymbols: [], twSymbols: symbols };
           }
         } else {
-          // 批次請求（從 handleRefreshQuotes）
           const usSymbols = activeProfile.holdings
             .filter((h) => h.market === 'US')
             .map((h) => h.symbol);
@@ -249,7 +224,6 @@ export default function PortfolioPage() {
           requestBody = { market: 'MIXED', usSymbols, twSymbols };
         }
       } else {
-        // 單一市場帳戶
         requestBody = { symbols, market: activeProfile.market || 'US' };
       }
 
@@ -261,23 +235,20 @@ export default function PortfolioPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || '獲取報價失敗');
+        throw new Error(error.error || 'Failed to fetch quotes');
       }
 
       const data = await response.json();
       const quotes: Quote[] = data.quotes;
 
-      // 更新價格和名稱
       const newPriceMap = quotesToPriceMap(quotes);
       const newNameMap = quotesToNameMap(quotes);
 
       setPriceMap((prev) => ({ ...prev, ...newPriceMap }));
       setNameMap((prev) => ({ ...prev, ...newNameMap }));
 
-      // 更新快取
       updatePriceCache(newPriceMap);
 
-      // 更新持股名稱
       if (activeProfile) {
         const needsUpdate = activeProfile.holdings.some(
           (h) => newNameMap[h.symbol] && h.name !== newNameMap[h.symbol]
@@ -297,14 +268,13 @@ export default function PortfolioPage() {
 
       showToast('報價已更新');
     } catch (error) {
-      const message = error instanceof Error ? error.message : '獲取報價失敗';
+      const message = error instanceof Error ? error.message : 'Failed to fetch quotes';
       showToast(message, 'error');
     } finally {
       setIsLoadingQuotes(false);
     }
   };
 
-  // 更新所有持股報價
   const handleRefreshQuotes = () => {
     if (!activeProfile || activeProfile.holdings.length === 0) {
       showToast('沒有持股需要更新', 'info');
@@ -315,14 +285,12 @@ export default function PortfolioPage() {
     fetchQuotesForSymbols(symbols);
   };
 
-  // 獲取 AI 建議
   const handleGetAdvice = async () => {
     if (!activeProfile || holdingsWithMetrics.length === 0 || !summary) {
       showToast('請先新增持股並更新報價', 'info');
       return;
     }
 
-    // 確認是否有價格資料
     const hasNoPrices = holdingsWithMetrics.every((h) => h.currentPrice === 0);
     if (hasNoPrices) {
       showToast('請先更新報價', 'info');
@@ -343,35 +311,97 @@ export default function PortfolioPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || '獲取建議失敗');
+        throw new Error(error.error || 'Failed to get advice');
       }
 
       const data = await response.json();
-      console.log('API Response:', data);
       if (data.advice) {
         setAdvice(data.advice);
       } else {
-        console.error('No advice in response:', data);
-        setAdviceError('API 回應中沒有建議內容');
+        setAdviceError('No advice in response');
       }
     } catch (error) {
-      console.error('Error fetching advice:', error);
-      const message = error instanceof Error ? error.message : '獲取建議失敗';
+      const message = error instanceof Error ? error.message : 'Failed to get advice';
       setAdviceError(message);
     } finally {
       setIsLoadingAdvice(false);
     }
   };
 
-  // SSR 保護
+  // 匯出資料
+  const handleExport = () => {
+    const data: StoredData = {
+      profiles,
+      activeProfileId,
+      priceCache: {},
+    };
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `小金庫_備份_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('資料已匯出');
+  };
+
+  // 匯入資料
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const data = JSON.parse(content) as StoredData;
+
+        // 驗證資料結構
+        if (!data.profiles || !Array.isArray(data.profiles)) {
+          throw new Error('無效的資料格式');
+        }
+
+        // 為匯入的 profiles 產生新的 ID 避免衝突
+        const importedProfiles = data.profiles.map((p) => ({
+          ...p,
+          id: uuidv4(),
+          holdings: p.holdings.map((h) => ({ ...h, id: uuidv4() })),
+        }));
+
+        // 合併現有和匯入的 profiles
+        const newProfiles = [...profiles, ...importedProfiles];
+        const newActiveId = importedProfiles[0]?.id || activeProfileId;
+
+        saveData(newProfiles, newActiveId);
+        showToast(`成功匯入 ${importedProfiles.length} 個投資組合`);
+      } catch (error) {
+        console.error('Import error:', error);
+        showToast('匯入失敗：檔案格式不正確', 'error');
+      }
+    };
+    reader.readAsText(file);
+
+    // 清空 input 讓同一檔案可以再次選取
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   if (!isClient) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{background: 'linear-gradient(135deg, #fef3f2 0%, #fef9c3 25%, #dcfce7 50%, #e0f2fe 75%, #f3e8ff 100%)'}}>
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center animate-bounce">
-            <span className="text-3xl">💖</span>
+          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center relative overflow-hidden" style={{background: 'linear-gradient(135deg, #f472b6 0%, #8b5cf6 50%, #3b82f6 100%)'}}>
+            <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent"></div>
+            <svg className="w-8 h-8 text-white relative z-10 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
           </div>
-          <p className="text-pink-400 font-medium">載入中...</p>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent mb-2">小金庫</h2>
+          <p className="text-slate-500 font-medium text-sm">載入中...</p>
         </div>
       </div>
     );
@@ -380,16 +410,19 @@ export default function PortfolioPage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md shadow-soft border-b border-pink-100 sticky top-0 z-40">
+      <header className="bg-white/70 backdrop-blur-xl border-b border-white/50 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-rose-500 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-200/50">
-                <span className="text-xl">🌸</span>
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center relative overflow-hidden" style={{background: 'linear-gradient(135deg, #f472b6 0%, #8b5cf6 50%, #3b82f6 100%)'}}>
+                <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent"></div>
+                <svg className="w-6 h-6 text-white relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gradient-cute">巴菲羽的小金庫</h1>
-                <p className="text-xs text-pink-400 hidden sm:block">投資理財小幫手</p>
+                <h1 className="text-xl font-extrabold bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent tracking-tight">小金庫</h1>
+                <p className="text-xs text-slate-500 hidden sm:block font-medium">投資組合管理</p>
               </div>
             </div>
             <ProfileSelector
@@ -405,7 +438,7 @@ export default function PortfolioPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
         <div className="space-y-6">
           {/* Summary Cards */}
           <SummaryCards
@@ -416,23 +449,23 @@ export default function PortfolioPage() {
             isMixed={isMixed}
           />
 
-          {/* 新增持股表單 */}
+          {/* Add Holding Form */}
           <AddHoldingForm
             market={activeProfile?.market || 'US'}
             onAdd={handleAddHolding}
             isLoading={isLoadingQuotes}
           />
 
-          {/* 更新報價按鈕 */}
+          {/* Refresh Button */}
           <div className="flex justify-end">
             <button
               onClick={handleRefreshQuotes}
               disabled={isLoadingQuotes || !activeProfile?.holdings.length}
-              className="btn-cute-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoadingQuotes ? (
                 <>
-                  <svg className="animate-spin h-5 w-5 text-pink-500" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
@@ -440,29 +473,34 @@ export default function PortfolioPage() {
                 </>
               ) : (
                 <>
-                  <span className="text-lg">🔄</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                   <span>更新報價</span>
                 </>
               )}
             </button>
           </div>
 
-          {/* 持股表格與圖表 */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <HoldingsTable
-                holdings={holdingsWithMetrics}
-                onEdit={handleEditHolding}
-                onDelete={handleDeleteHolding}
-                isLoading={isLoadingQuotes}
-              />
-            </div>
-            <div>
-              <PieChartCard holdings={holdingsWithMetrics} isLoading={isLoadingQuotes} />
-            </div>
-          </div>
+          {/* Holdings Table - Full Width */}
+          <HoldingsTable
+            holdings={holdingsWithMetrics}
+            onEdit={handleEditHolding}
+            onDelete={handleDeleteHolding}
+            isLoading={isLoadingQuotes}
+          />
 
-          {/* AI 建議 */}
+          {/* Pie Chart - Below Table */}
+          <PieChartCard holdings={holdingsWithMetrics} isLoading={isLoadingQuotes} />
+
+          {/* Charts Section - Multiple Charts */}
+          <ChartsSection
+            holdings={holdingsWithMetrics}
+            isLoading={isLoadingQuotes}
+            isMixed={isMixed}
+          />
+
+          {/* AI Advice */}
           <AdvicePanel
             advice={advice}
             isLoading={isLoadingAdvice}
@@ -476,11 +514,48 @@ export default function PortfolioPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white/80 backdrop-blur-md border-t border-pink-100 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <p className="text-center text-sm text-pink-400">
-            本工具僅供參考，不構成任何投資建議。投資有風險，決策請謹慎喔～ 💕
-          </p>
+      <footer className="bg-white/60 backdrop-blur-sm border-t border-slate-200/50 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-center text-xs text-slate-400 font-medium">
+              本工具僅供資訊參考，不構成投資建議
+            </p>
+            <div className="flex items-center gap-3">
+              {/* 隱藏的 file input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImport}
+                accept=".json"
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-1.5"
+                title="匯入資料"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                匯入
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={profiles.length === 0}
+                className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="匯出資料"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                匯出
+              </button>
+              <span className="text-xs text-slate-300">|</span>
+              <p className="text-xs text-slate-300">
+                小金庫 v2.0
+              </p>
+            </div>
+          </div>
         </div>
       </footer>
 

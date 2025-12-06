@@ -2,10 +2,10 @@
 
 import { RiskLevel } from '@/lib/types';
 
-const RISK_OPTIONS: { value: RiskLevel; label: string; emoji: string }[] = [
-  { value: 'conservative', label: '保守型', emoji: '🐢' },
-  { value: 'balanced', label: '平衡型', emoji: '🦊' },
-  { value: 'aggressive', label: '積極型', emoji: '🦁' },
+const RISK_OPTIONS: { value: RiskLevel; label: string }[] = [
+  { value: 'conservative', label: '保守型' },
+  { value: 'balanced', label: '穩健型' },
+  { value: 'aggressive', label: '積極型' },
 ];
 
 interface AdvicePanelProps {
@@ -27,50 +27,46 @@ export default function AdvicePanel({
   riskLevel,
   onRiskLevelChange,
 }: AdvicePanelProps) {
-  const selectedOption = RISK_OPTIONS.find(o => o.value === riskLevel);
-
   return (
-    <div className="card-cute p-6">
+    <div className="card p-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-lg shadow-purple-200/50 animate-float">
-            <span className="text-2xl">✨</span>
+          <div className="w-10 h-10 rounded-lg bg-gold-100 flex items-center justify-center">
+            <svg className="w-5 h-5 text-gold-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-800">AI 投資建議</h3>
-            <p className="text-xs text-pink-400">讓 AI 幫你分析投資組合</p>
+            <h3 className="font-semibold text-slate-800">AI 投資洞察</h3>
+            <p className="text-xs text-slate-500">個人化投資組合分析</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {/* 風險偏好下拉選單 */}
           <div className="relative">
             <select
               value={riskLevel}
               onChange={(e) => onRiskLevelChange(e.target.value as RiskLevel)}
               disabled={isLoading}
-              className="appearance-none pl-10 pr-8 py-2.5 text-sm border-2 border-pink-200 rounded-2xl bg-white/80 font-semibold text-pink-600 focus:border-pink-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="appearance-none pl-3 pr-8 py-2 text-sm border border-slate-300 rounded-lg bg-white font-medium text-slate-700 focus:border-navy-500 focus:ring-2 focus:ring-navy-500/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {RISK_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.emoji} {option.label}
+                  {option.label}
                 </option>
               ))}
             </select>
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg pointer-events-none">
-              {selectedOption?.emoji}
-            </span>
-            <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-pink-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>
           <button
             onClick={onGetAdvice}
             disabled={disabled || isLoading}
-            className="btn-cute-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <>
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
@@ -78,67 +74,78 @@ export default function AdvicePanel({
               </>
             ) : (
               <>
-                <span className="text-lg">🔮</span>
-                <span>取得建議</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span>取得洞察</span>
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* Loading 狀態 */}
+      {/* Loading State */}
       {isLoading && (
-        <div className="space-y-4">
-          <div className="shimmer h-4 rounded-full w-full"></div>
-          <div className="shimmer h-4 rounded-full w-5/6"></div>
-          <div className="shimmer h-4 rounded-full w-4/6"></div>
-          <div className="shimmer h-4 rounded-full w-full"></div>
-          <div className="shimmer h-4 rounded-full w-3/4"></div>
+        <div className="space-y-3">
+          <div className="shimmer h-4 rounded w-full"></div>
+          <div className="shimmer h-4 rounded w-5/6"></div>
+          <div className="shimmer h-4 rounded w-4/6"></div>
+          <div className="shimmer h-4 rounded w-full"></div>
+          <div className="shimmer h-4 rounded w-3/4"></div>
         </div>
       )}
 
-      {/* 錯誤狀態 */}
+      {/* Error State */}
       {error && !isLoading && (
-        <div className="bg-rose-50 border-2 border-rose-200 rounded-2xl p-5">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center flex-shrink-0">
-              <span className="text-2xl">😢</span>
+        <div className="bg-danger-50 border border-danger-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-danger-100 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-danger-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
             <div>
-              <p className="text-rose-600 font-bold">哎呀，出了點問題...</p>
-              <p className="text-rose-500 text-sm mt-1">{error}</p>
+              <p className="text-danger-800 font-medium">無法產生洞察</p>
+              <p className="text-danger-600 text-sm mt-1">{error}</p>
               <button
                 onClick={onGetAdvice}
-                className="text-rose-600 text-sm font-semibold mt-3 hover:underline flex items-center gap-1"
+                className="text-danger-700 text-sm font-medium mt-2 hover:underline flex items-center gap-1"
               >
-                <span>🔄</span> 再試一次
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                重試
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 建議內容 */}
+      {/* Advice Content */}
       {advice && !isLoading && !error && (
-        <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 rounded-2xl p-5 border-2 border-pink-100">
+        <div className="bg-slate-50 rounded-lg p-5 border border-slate-200">
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl">💡</span>
-            <span className="text-sm font-bold text-purple-600">AI 分析結果</span>
+            <svg className="w-5 h-5 text-gold-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            <span className="text-sm font-semibold text-slate-700">AI 分析</span>
           </div>
-          <div className="whitespace-pre-wrap text-gray-700 leading-relaxed font-medium">
+          <div className="whitespace-pre-wrap text-slate-700 leading-relaxed">
             {advice}
           </div>
         </div>
       )}
 
-      {/* 預設狀態 */}
+      {/* Default State */}
       {!advice && !isLoading && !error && (
         <div className="text-center py-10">
-          <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center animate-float">
-            <span className="text-5xl">🔮</span>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+            <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
           </div>
-          <p className="text-pink-500 font-semibold text-lg">點擊上方按鈕，讓 AI 分析您的投資組合</p>
-          <p className="text-sm text-pink-400 mt-2">請確保已更新報價後再取得建議喔～ ✨</p>
+          <p className="text-slate-700 font-medium">取得 AI 投資組合洞察</p>
+          <p className="text-sm text-slate-500 mt-1">更新報價後點擊上方按鈕</p>
         </div>
       )}
     </div>
