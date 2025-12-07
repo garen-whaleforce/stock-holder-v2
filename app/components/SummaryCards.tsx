@@ -163,7 +163,7 @@ export default function SummaryCards({ summary, isLoading, baseCurrency = 'USD',
               </svg>
             </div>
           </div>
-          <p className="stat-value">{summary.topHoldings?.length || 0}</p>
+          <p className="stat-value">{summary.totalHoldingsCount || 0}</p>
           <p className="text-xs text-slate-500 mt-2">目前持有</p>
         </div>
       </div>

@@ -256,6 +256,7 @@ export function calculatePortfolioSummary(
     totalUnrealizedPnL,
     totalUnrealizedPnLPercent,
     topHoldings,
+    totalHoldingsCount: holdingsWithMetrics.length,
     concentration: top3Weight,
     exchangeRate,
     usBreakdown,

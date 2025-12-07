@@ -140,6 +140,7 @@ export interface PortfolioSummary {
   totalUnrealizedPnL: number;
   totalUnrealizedPnLPercent: number;
   topHoldings: HoldingWithMetrics[];
+  totalHoldingsCount: number; // 持股總數
   concentration: number; // 前三大持股佔比
   exchangeRate?: number; // USD/TWD 匯率（混合帳戶用）
   // 市場分類摘要（混合帳戶用，以原始幣別計算）
