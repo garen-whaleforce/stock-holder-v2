@@ -102,7 +102,7 @@ export default function ProfileSelector({
       <select
         value={activeProfileId}
         onChange={(e) => onSelectProfile(e.target.value)}
-        className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-navy-500 focus:border-navy-500"
       >
         {profiles.map((profile) => (
           <option key={profile.id} value={profile.id}>
@@ -125,7 +125,7 @@ export default function ProfileSelector({
       {/* 新增按鈕 */}
       <button
         onClick={() => setIsCreating(true)}
-        className="p-2 text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
+        className="p-2 text-navy-600 hover:text-navy-700 hover:bg-navy-50 rounded-lg transition-colors"
         title="新增組合"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,8 +148,8 @@ export default function ProfileSelector({
 
       {/* 新增 Modal */}
       {isCreating && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto my-auto">
             <h3 className="text-lg font-semibold mb-4">新增投資組合</h3>
             <div className="space-y-4">
               <div>
@@ -159,7 +159,7 @@ export default function ProfileSelector({
                 <select
                   value={newMarket}
                   onChange={(e) => handleMarketChange(e.target.value as Market)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500"
                 >
                   <option value="US">美股</option>
                   <option value="TW">台股</option>
@@ -176,7 +176,7 @@ export default function ProfileSelector({
                   <select
                     value={newCurrency}
                     onChange={(e) => setNewCurrency(e.target.value as Currency)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500"
                   >
                     <option value="USD">USD 美元</option>
                     <option value="TWD">TWD 新台幣</option>
@@ -196,7 +196,7 @@ export default function ProfileSelector({
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="例如：退休金帳戶"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500"
                 />
               </div>
               <div>
@@ -206,7 +206,7 @@ export default function ProfileSelector({
                 <select
                   value={newRiskLevel}
                   onChange={(e) => setNewRiskLevel(e.target.value as RiskLevel)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500"
                 >
                   <option value="conservative">保守型</option>
                   <option value="balanced">平衡型</option>
@@ -224,7 +224,7 @@ export default function ProfileSelector({
               <button
                 onClick={handleCreate}
                 disabled={!newName.trim()}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 建立
               </button>
@@ -235,8 +235,8 @@ export default function ProfileSelector({
 
       {/* 編輯 Modal */}
       {isEditing && activeProfile && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto my-auto">
             <h3 className="text-lg font-semibold mb-4">編輯投資組合</h3>
             <div className="space-y-4">
               <div>
@@ -256,7 +256,7 @@ export default function ProfileSelector({
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500"
                 />
               </div>
               <div>
@@ -266,7 +266,7 @@ export default function ProfileSelector({
                 <select
                   value={newRiskLevel}
                   onChange={(e) => setNewRiskLevel(e.target.value as RiskLevel)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500"
                 >
                   <option value="conservative">保守型</option>
                   <option value="balanced">平衡型</option>
@@ -284,7 +284,7 @@ export default function ProfileSelector({
               <button
                 onClick={handleEdit}
                 disabled={!newName.trim()}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 儲存
               </button>
