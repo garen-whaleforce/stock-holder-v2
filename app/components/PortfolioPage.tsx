@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Profile, Holding, HoldingWithMetrics, PortfolioSummary, Quote, StoredData, HoldingMarket, RiskLevel } from '@/lib/types';
+import { Profile, Holding, HoldingWithMetrics, PortfolioSummary, Quote, StoredData, HoldingMarket, RiskLevel, AssetClass, BondCategory } from '@/lib/types';
 import { loadFromStorage, saveToStorage, updatePriceCache, getAllCachedPrices } from '@/lib/storage';
 import {
   calculateAllHoldingsMetrics,
@@ -20,6 +20,20 @@ import PieChartCard from './PieChartCard';
 import ChartsSection from './ChartsSection';
 import AdvicePanel from './AdvicePanel';
 import Toast from './Toast';
+
+// 新增持股的參數類型
+interface AddHoldingParams {
+  symbol: string;
+  quantity: number;
+  costBasis: number;
+  holdingMarket?: HoldingMarket;
+  assetClass?: AssetClass;
+  bondCategory?: BondCategory;
+  couponRate?: number;
+  maturityDate?: string;
+  currentPrice?: number;
+  name?: string;
+}
 
 export default function PortfolioPage() {
   const [isClient, setIsClient] = useState(false);
@@ -138,32 +152,70 @@ export default function PortfolioPage() {
     saveData(newProfiles, activeProfileId);
   };
 
-  const handleAddHolding = async (symbol: string, quantity: number, costBasis: number, holdingMarket?: HoldingMarket) => {
+  const handleAddHolding = async (params: AddHoldingParams) => {
     if (!activeProfile) return;
 
-    const existingIndex = activeProfile.holdings.findIndex((h) => h.symbol === symbol);
+    const { symbol, quantity, costBasis, holdingMarket, assetClass, bondCategory, couponRate, maturityDate, currentPrice, name } = params;
+    const isBond = assetClass === 'bond';
+
+    // 對於債券，使用唯一的 symbol 或附加 bondCategory
+    const holdingKey = isBond ? `${symbol}-${bondCategory}` : symbol;
+
+    const existingIndex = activeProfile.holdings.findIndex((h) => {
+      if (isBond) {
+        // 債券：相同 symbol 和 bondCategory 才算重複
+        return h.symbol === symbol && h.assetClass === 'bond' && h.bondCategory === bondCategory;
+      }
+      // 股票：相同 symbol 就算重複
+      return h.symbol === symbol && h.assetClass !== 'bond';
+    });
 
     let updatedHoldings: Holding[];
     if (existingIndex >= 0) {
       const existing = activeProfile.holdings[existingIndex];
-      const totalQuantity = existing.quantity + quantity;
-      const totalCost = existing.costBasis * existing.quantity + costBasis * quantity;
-      const newCostBasis = totalCost / totalQuantity;
 
-      updatedHoldings = [...activeProfile.holdings];
-      updatedHoldings[existingIndex] = {
-        ...existing,
-        quantity: totalQuantity,
-        costBasis: newCostBasis,
-      };
+      if (isBond) {
+        // 債券：合併面額和成本
+        const totalQuantity = existing.quantity + quantity;
+        const totalCost = (existing.costBasis / 100) * existing.quantity + (costBasis / 100) * quantity;
+        const newCostBasis = (totalCost / totalQuantity) * 100;
+
+        updatedHoldings = [...activeProfile.holdings];
+        updatedHoldings[existingIndex] = {
+          ...existing,
+          quantity: totalQuantity,
+          costBasis: newCostBasis,
+          currentPrice: currentPrice ?? existing.currentPrice,
+          couponRate: couponRate ?? existing.couponRate,
+          maturityDate: maturityDate ?? existing.maturityDate,
+        };
+      } else {
+        // 股票：合併股數和成本
+        const totalQuantity = existing.quantity + quantity;
+        const totalCost = existing.costBasis * existing.quantity + costBasis * quantity;
+        const newCostBasis = totalCost / totalQuantity;
+
+        updatedHoldings = [...activeProfile.holdings];
+        updatedHoldings[existingIndex] = {
+          ...existing,
+          quantity: totalQuantity,
+          costBasis: newCostBasis,
+        };
+      }
     } else {
+      // 新增持股
       const newHolding: Holding = {
         id: uuidv4(),
         symbol,
-        name: nameMap[symbol] || symbol,
+        name: name || nameMap[symbol] || symbol,
         quantity,
         costBasis,
         market: holdingMarket,
+        assetClass,
+        bondCategory,
+        couponRate,
+        maturityDate,
+        currentPrice,
       };
       updatedHoldings = [...activeProfile.holdings, newHolding];
     }
@@ -171,9 +223,12 @@ export default function PortfolioPage() {
     const updatedProfile = { ...activeProfile, holdings: updatedHoldings };
     const newProfiles = profiles.map((p) => (p.id === activeProfile.id ? updatedProfile : p));
     saveData(newProfiles, activeProfileId);
-    showToast(`${existingIndex >= 0 ? 'Updated' : 'Added'} ${symbol}`);
 
-    if (!priceMap[symbol]) {
+    const assetTypeLabel = isBond ? (bondCategory === 'ust' ? '美國公債' : '公司債') : '股票';
+    showToast(`${existingIndex >= 0 ? '已更新' : '已新增'} ${symbol} (${assetTypeLabel})`);
+
+    // 股票才需要獲取報價，債券使用手動輸入的價格
+    if (!isBond && !priceMap[symbol]) {
       await fetchQuotesForSymbols([symbol], holdingMarket);
     }
   };
@@ -216,10 +271,10 @@ export default function PortfolioPage() {
           }
         } else {
           const usSymbols = activeProfile.holdings
-            .filter((h) => h.market === 'US')
+            .filter((h) => h.market === 'US' && h.assetClass !== 'bond')
             .map((h) => h.symbol);
           const twSymbols = activeProfile.holdings
-            .filter((h) => h.market === 'TW')
+            .filter((h) => h.market === 'TW' && h.assetClass !== 'bond')
             .map((h) => h.symbol);
           requestBody = { market: 'MIXED', usSymbols, twSymbols };
         }
@@ -251,12 +306,12 @@ export default function PortfolioPage() {
 
       if (activeProfile) {
         const needsUpdate = activeProfile.holdings.some(
-          (h) => newNameMap[h.symbol] && h.name !== newNameMap[h.symbol]
+          (h) => newNameMap[h.symbol] && h.name !== newNameMap[h.symbol] && h.assetClass !== 'bond'
         );
         if (needsUpdate) {
           const updatedHoldings = activeProfile.holdings.map((h) => ({
             ...h,
-            name: newNameMap[h.symbol] || h.name,
+            name: h.assetClass === 'bond' ? h.name : (newNameMap[h.symbol] || h.name),
           }));
           const updatedProfile = { ...activeProfile, holdings: updatedHoldings };
           const newProfiles = profiles.map((p) =>
@@ -281,8 +336,17 @@ export default function PortfolioPage() {
       return;
     }
 
-    const symbols = activeProfile.holdings.map((h) => h.symbol);
-    fetchQuotesForSymbols(symbols);
+    // 只獲取股票的報價，不獲取債券報價（債券使用手動輸入價格）
+    const equitySymbols = activeProfile.holdings
+      .filter((h) => h.assetClass !== 'bond')
+      .map((h) => h.symbol);
+
+    if (equitySymbols.length === 0) {
+      showToast('沒有股票持股需要更新報價', 'info');
+      return;
+    }
+
+    fetchQuotesForSymbols(equitySymbols);
   };
 
   const handleGetAdvice = async () => {
@@ -291,9 +355,11 @@ export default function PortfolioPage() {
       return;
     }
 
-    const hasNoPrices = holdingsWithMetrics.every((h) => h.currentPrice === 0);
+    // 檢查股票是否有報價（債券使用手動價格，不需要檢查）
+    const equityHoldings = holdingsWithMetrics.filter((h) => h.assetClass !== 'bond');
+    const hasNoPrices = equityHoldings.length > 0 && equityHoldings.every((h) => h.currentPrice === 0);
     if (hasNoPrices) {
-      showToast('請先更新報價', 'info');
+      showToast('請先更新股票報價', 'info');
       return;
     }
 
@@ -506,7 +572,7 @@ export default function PortfolioPage() {
             isLoading={isLoadingAdvice}
             error={adviceError}
             onGetAdvice={handleGetAdvice}
-            disabled={!activeProfile?.holdings.length || holdingsWithMetrics.every((h) => h.currentPrice === 0)}
+            disabled={!activeProfile?.holdings.length || holdingsWithMetrics.filter(h => h.assetClass !== 'bond').every((h) => h.currentPrice === 0)}
             riskLevel={activeProfile?.riskLevel || 'balanced'}
             onRiskLevelChange={handleRiskLevelChange}
           />

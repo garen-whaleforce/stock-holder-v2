@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PortfolioSummary, Currency } from '@/lib/types';
+import { PortfolioSummary, Currency, ASSET_CLASS_LABELS, BOND_CATEGORY_LABELS } from '@/lib/types';
 import { formatCurrency, formatPercent } from '@/lib/portfolio';
 
 interface SummaryCardsProps {
@@ -79,6 +79,10 @@ export default function SummaryCards({ summary, isLoading, baseCurrency = 'USD',
   };
 
   const concentrationStatus = getConcentrationStatus(summary.concentration);
+
+  // 計算是否有資產類別分布資料（股票或債券市值大於0）
+  const hasAssetBreakdown = summary.assetClassBreakdown &&
+    (summary.assetClassBreakdown.equity.marketValue > 0 || summary.assetClassBreakdown.bond.totalMarketValue > 0);
 
   return (
     <div className="space-y-4">
@@ -163,6 +167,141 @@ export default function SummaryCards({ summary, isLoading, baseCurrency = 'USD',
           <p className="text-xs text-slate-500 mt-2">目前持有</p>
         </div>
       </div>
+
+      {/* Asset Class Breakdown */}
+      {hasAssetBreakdown && (
+        <div className="card p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
+              <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-semibold text-slate-800">資產配置</p>
+              <p className="text-xs text-slate-500">股票與債券分布</p>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="mb-4">
+            <div className="h-3 rounded-full bg-slate-100 overflow-hidden flex">
+              {summary.assetClassBreakdown!.equity.weight > 0 && (
+                <div
+                  className="h-full bg-navy-500 transition-all duration-500"
+                  style={{ width: `${summary.assetClassBreakdown!.equity.weight * 100}%` }}
+                />
+              )}
+              {summary.assetClassBreakdown!.bond.corp.weight > 0 && (
+                <div
+                  className="h-full bg-amber-500 transition-all duration-500"
+                  style={{ width: `${summary.assetClassBreakdown!.bond.corp.weight * 100}%` }}
+                />
+              )}
+              {summary.assetClassBreakdown!.bond.ust.weight > 0 && (
+                <div
+                  className="h-full bg-emerald-500 transition-all duration-500"
+                  style={{ width: `${summary.assetClassBreakdown!.bond.ust.weight * 100}%` }}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Legend and Details */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Equity */}
+            {summary.assetClassBreakdown!.equity.marketValue > 0 && (
+              <div className="p-3 bg-navy-50 rounded-lg border border-navy-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3 h-3 rounded-full bg-navy-500"></div>
+                  <span className="text-sm font-medium text-slate-700">{ASSET_CLASS_LABELS.equity}</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">市值</span>
+                    <span className="text-sm font-semibold text-slate-800">
+                      {formatCurrency(convertAmount(summary.assetClassBreakdown!.equity.marketValue), displayCurrency)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">佔比</span>
+                    <span className="text-sm font-semibold text-navy-600">
+                      {(summary.assetClassBreakdown!.equity.weight * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Corporate Bonds */}
+            {summary.assetClassBreakdown!.bond.corp.marketValue > 0 && (
+              <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                  <span className="text-sm font-medium text-slate-700">{BOND_CATEGORY_LABELS.corp}</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">市值</span>
+                    <span className="text-sm font-semibold text-slate-800">
+                      {formatCurrency(convertAmount(summary.assetClassBreakdown!.bond.corp.marketValue), displayCurrency)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">佔比</span>
+                    <span className="text-sm font-semibold text-amber-600">
+                      {(summary.assetClassBreakdown!.bond.corp.weight * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* US Treasuries */}
+            {summary.assetClassBreakdown!.bond.ust.marketValue > 0 && (
+              <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                  <span className="text-sm font-medium text-slate-700">{BOND_CATEGORY_LABELS.ust}</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">市值</span>
+                    <span className="text-sm font-semibold text-slate-800">
+                      {formatCurrency(convertAmount(summary.assetClassBreakdown!.bond.ust.marketValue), displayCurrency)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-slate-500">佔比</span>
+                    <span className="text-sm font-semibold text-emerald-600">
+                      {(summary.assetClassBreakdown!.bond.ust.weight * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bond Total (if both corp and ust exist) */}
+          {summary.assetClassBreakdown!.bond.corp.marketValue > 0 &&
+           summary.assetClassBreakdown!.bond.ust.marketValue > 0 && (
+            <div className="mt-3 pt-3 border-t border-slate-200">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-600">債券總計</span>
+                <div className="text-right">
+                  <span className="font-semibold text-slate-800">
+                    {formatCurrency(convertAmount(summary.assetClassBreakdown!.bond.totalMarketValue), displayCurrency)}
+                  </span>
+                  <span className="text-slate-500 ml-2">
+                    ({(summary.assetClassBreakdown!.bond.weight * 100).toFixed(1)}%)
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Market Breakdown for Mixed Account */}
       {isMixed && (summary.usBreakdown || summary.twBreakdown) && (

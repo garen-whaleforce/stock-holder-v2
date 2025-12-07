@@ -4,6 +4,7 @@ import {
   PortfolioPayload,
   PortfolioSummary,
   MarketBreakdown,
+  AssetClassBreakdown,
   Profile,
   Quote,
   Currency,
@@ -22,6 +23,45 @@ function getHoldingCurrency(holding: Holding, profileMarket: string): Currency {
 }
 
 /**
+ * 計算持股的市值（區分股票與債券）
+ * 股票：quantity * currentPrice
+ * 債券：faceValue * (currentPrice / 100)
+ */
+function calculateMarketValue(holding: Holding, currentPrice: number): number {
+  const isBond = holding.assetClass === 'bond';
+  if (isBond) {
+    // 債券：quantity = 總面額，currentPrice = 每100面額的價格
+    return holding.quantity * (currentPrice / 100);
+  }
+  // 股票：quantity = 股數，currentPrice = 每股價格
+  return holding.quantity * currentPrice;
+}
+
+/**
+ * 計算持股的成本（區分股票與債券）
+ * 股票：quantity * costBasis
+ * 債券：faceValue * (costBasis / 100)
+ */
+function calculateCost(holding: Holding): number {
+  const isBond = holding.assetClass === 'bond';
+  if (isBond) {
+    // 債券：costBasis = 買入價格（每100面額）
+    return holding.quantity * (holding.costBasis / 100);
+  }
+  // 股票：costBasis = 每股成本
+  return holding.quantity * holding.costBasis;
+}
+
+/**
+ * 計算持股的損益百分比（區分股票與債券）
+ */
+function calculatePnLPercent(holding: Holding, currentPrice: number): number {
+  if (holding.costBasis <= 0) return 0;
+  // 對於股票和債券，損益百分比計算方式相同（都是價格變化百分比）
+  return (currentPrice - holding.costBasis) / holding.costBasis;
+}
+
+/**
  * 計算單一持股的指標（支援匯率轉換）
  */
 export function calculateHoldingMetrics(
@@ -30,11 +70,11 @@ export function calculateHoldingMetrics(
   totalMarketValue: number,
   originalCurrency: Currency = 'USD'
 ): HoldingWithMetrics {
-  const originalMarketValue = holding.quantity * currentPrice;
+  const originalMarketValue = calculateMarketValue(holding, currentPrice);
   const weight = totalMarketValue > 0 ? originalMarketValue / totalMarketValue : 0;
-  const unrealizedPnL = (currentPrice - holding.costBasis) * holding.quantity;
-  const unrealizedPnLPercent =
-    holding.costBasis > 0 ? (currentPrice - holding.costBasis) / holding.costBasis : 0;
+  const cost = calculateCost(holding);
+  const unrealizedPnL = originalMarketValue - cost;
+  const unrealizedPnLPercent = calculatePnLPercent(holding, currentPrice);
 
   return {
     ...holding,
@@ -61,9 +101,13 @@ export function calculateAllHoldingsMetrics(
   // 第一階段：計算原始市值並轉換到 baseCurrency
   let totalMarketValue = 0;
   const preliminaryData = holdings.map((holding) => {
-    const currentPrice = priceMap[holding.symbol] || 0;
+    // 對於債券，優先使用手動輸入的 currentPrice
+    const isBond = holding.assetClass === 'bond';
+    const currentPrice = isBond && holding.currentPrice !== undefined
+      ? holding.currentPrice
+      : (priceMap[holding.symbol] || 0);
     const originalCurrency = getHoldingCurrency(holding, profileMarket);
-    const originalMarketValue = holding.quantity * currentPrice;
+    const originalMarketValue = calculateMarketValue(holding, currentPrice);
 
     // 轉換到 baseCurrency
     const convertedMarketValue = convertCurrency(
@@ -87,7 +131,8 @@ export function calculateAllHoldingsMetrics(
   // 第二階段：計算各持股權重與轉換後的損益
   return preliminaryData.map(({ holding, currentPrice, originalCurrency, originalMarketValue, convertedMarketValue }) => {
     const weight = totalMarketValue > 0 ? convertedMarketValue / totalMarketValue : 0;
-    const originalPnL = (currentPrice - holding.costBasis) * holding.quantity;
+    const cost = calculateCost(holding);
+    const originalPnL = originalMarketValue - cost;
 
     // 轉換損益到 baseCurrency
     const convertedPnL = convertCurrency(
@@ -98,16 +143,14 @@ export function calculateAllHoldingsMetrics(
     );
 
     // 轉換成本到 baseCurrency
-    const originalCost = holding.costBasis * holding.quantity;
     const convertedCost = convertCurrency(
-      originalCost,
+      cost,
       originalCurrency,
       baseCurrency,
       exchangeRate
     );
 
-    const unrealizedPnLPercent =
-      holding.costBasis > 0 ? (currentPrice - holding.costBasis) / holding.costBasis : 0;
+    const unrealizedPnLPercent = calculatePnLPercent(holding, currentPrice);
 
     return {
       ...holding,
@@ -123,6 +166,51 @@ export function calculateAllHoldingsMetrics(
 }
 
 /**
+ * 計算資產類別分布
+ */
+function calculateAssetClassBreakdown(
+  holdingsWithMetrics: HoldingWithMetrics[],
+  totalMarketValue: number
+): AssetClassBreakdown {
+  // 分類持股
+  const equityHoldings = holdingsWithMetrics.filter(h => h.assetClass !== 'bond');
+  const bondHoldings = holdingsWithMetrics.filter(h => h.assetClass === 'bond');
+  const corpBondHoldings = bondHoldings.filter(h => h.bondCategory === 'corp');
+  const ustBondHoldings = bondHoldings.filter(h => h.bondCategory === 'ust');
+
+  // 計算各類別市值
+  const equityMarketValue = equityHoldings.reduce((sum, h) => sum + h.marketValue, 0);
+  const bondTotalMarketValue = bondHoldings.reduce((sum, h) => sum + h.marketValue, 0);
+  const corpMarketValue = corpBondHoldings.reduce((sum, h) => sum + h.marketValue, 0);
+  const ustMarketValue = ustBondHoldings.reduce((sum, h) => sum + h.marketValue, 0);
+
+  // 計算權重
+  const equityWeight = totalMarketValue > 0 ? equityMarketValue / totalMarketValue : 0;
+  const bondWeight = totalMarketValue > 0 ? bondTotalMarketValue / totalMarketValue : 0;
+  const corpWeight = totalMarketValue > 0 ? corpMarketValue / totalMarketValue : 0;
+  const ustWeight = totalMarketValue > 0 ? ustMarketValue / totalMarketValue : 0;
+
+  return {
+    equity: {
+      marketValue: equityMarketValue,
+      weight: equityWeight,
+    },
+    bond: {
+      totalMarketValue: bondTotalMarketValue,
+      weight: bondWeight,
+      corp: {
+        marketValue: corpMarketValue,
+        weight: corpWeight,
+      },
+      ust: {
+        marketValue: ustMarketValue,
+        weight: ustWeight,
+      },
+    },
+  };
+}
+
+/**
  * 計算投資組合摘要
  */
 export function calculatePortfolioSummary(
@@ -131,7 +219,12 @@ export function calculatePortfolioSummary(
 ): PortfolioSummary {
   const totalMarketValue = holdingsWithMetrics.reduce((sum, h) => sum + h.marketValue, 0);
   const totalCost = holdingsWithMetrics.reduce(
-    (sum, h) => sum + h.costBasis * h.quantity,
+    (sum, h) => {
+      // 使用 calculateCost 輔助函數計算正確的成本
+      const cost = calculateCost(h);
+      // 轉換成本到 baseCurrency（如果有匯率的話）
+      return sum + cost;
+    },
     0
   );
   const totalUnrealizedPnL = holdingsWithMetrics.reduce(
@@ -150,15 +243,18 @@ export function calculatePortfolioSummary(
 
   const usBreakdown: MarketBreakdown | undefined = usHoldings.length > 0 ? {
     marketValue: usHoldings.reduce((sum, h) => sum + h.originalMarketValue, 0),
-    cost: usHoldings.reduce((sum, h) => sum + h.costBasis * h.quantity, 0),
-    unrealizedPnL: usHoldings.reduce((sum, h) => sum + (h.currentPrice - h.costBasis) * h.quantity, 0),
+    cost: usHoldings.reduce((sum, h) => sum + calculateCost(h), 0),
+    unrealizedPnL: usHoldings.reduce((sum, h) => sum + (h.originalMarketValue - calculateCost(h)), 0),
   } : undefined;
 
   const twBreakdown: MarketBreakdown | undefined = twHoldings.length > 0 ? {
     marketValue: twHoldings.reduce((sum, h) => sum + h.originalMarketValue, 0),
-    cost: twHoldings.reduce((sum, h) => sum + h.costBasis * h.quantity, 0),
-    unrealizedPnL: twHoldings.reduce((sum, h) => sum + (h.currentPrice - h.costBasis) * h.quantity, 0),
+    cost: twHoldings.reduce((sum, h) => sum + calculateCost(h), 0),
+    unrealizedPnL: twHoldings.reduce((sum, h) => sum + (h.originalMarketValue - calculateCost(h)), 0),
   } : undefined;
+
+  // 計算資產類別分布
+  const assetClassBreakdown = calculateAssetClassBreakdown(holdingsWithMetrics, totalMarketValue);
 
   return {
     totalMarketValue,
@@ -170,6 +266,7 @@ export function calculatePortfolioSummary(
     exchangeRate,
     usBreakdown,
     twBreakdown,
+    assetClassBreakdown,
   };
 }
 
@@ -200,7 +297,12 @@ export function buildPortfolioPayload(
       weight: h.weight,
       unrealizedPnL: h.unrealizedPnL,
       unrealizedPnLPercent: h.unrealizedPnLPercent,
+      assetClass: h.assetClass,
+      bondCategory: h.bondCategory,
+      couponRate: h.couponRate,
+      maturityDate: h.maturityDate,
     })),
+    assetClassBreakdown: summary.assetClassBreakdown,
   };
 }
 

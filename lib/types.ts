@@ -10,6 +10,24 @@ export type HoldingMarket = 'US' | 'TW';
 // 風險偏好類型
 export type RiskLevel = 'conservative' | 'balanced' | 'aggressive';
 
+// 資產類別
+export type AssetClass = 'equity' | 'bond';
+
+// 債券分類
+export type BondCategory = 'corp' | 'ust';
+
+// 資產類別顯示名稱對照
+export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
+  equity: '股票',
+  bond: '債券',
+};
+
+// 債券分類顯示名稱對照
+export const BOND_CATEGORY_LABELS: Record<BondCategory, string> = {
+  corp: '公司債',
+  ust: '美國公債',
+};
+
 // FMP API 回傳的報價資料（美股）
 export interface FMPQuote {
   symbol: string;
@@ -53,10 +71,17 @@ export interface Holding {
   id: string;
   symbol: string;
   name: string;
-  quantity: number;
-  costBasis: number;
+  quantity: number; // 股票：股數；債券：總面額
+  costBasis: number; // 股票：每股成本；債券：買入價格（每100面額）
   market?: HoldingMarket; // 該持股所屬市場（混合帳戶用）
   note?: string;
+  // 資產類別相關欄位
+  assetClass?: AssetClass; // 預設為 'equity'
+  // 債券專用欄位（assetClass === 'bond' 時使用）
+  bondCategory?: BondCategory; // 'corp' 或 'ust'
+  couponRate?: number; // 票面利率（%）
+  maturityDate?: string; // 到期日（YYYY-MM-DD）
+  currentPrice?: number; // 目前價格（債券用：每100面額；手動輸入）
 }
 
 // 計算後的持股資料（包含現價與損益）
@@ -87,6 +112,26 @@ export interface MarketBreakdown {
   unrealizedPnL: number;
 }
 
+// 資產類別細分（用於 Summary）
+export interface AssetClassBreakdown {
+  equity: {
+    marketValue: number;
+    weight: number;
+  };
+  bond: {
+    totalMarketValue: number;
+    weight: number;
+    corp: {
+      marketValue: number;
+      weight: number;
+    };
+    ust: {
+      marketValue: number;
+      weight: number;
+    };
+  };
+}
+
 // 投資組合摘要資訊
 export interface PortfolioSummary {
   totalMarketValue: number;
@@ -99,6 +144,25 @@ export interface PortfolioSummary {
   // 市場分類摘要（混合帳戶用，以原始幣別計算）
   usBreakdown?: MarketBreakdown;
   twBreakdown?: MarketBreakdown;
+  // 資產類別分布
+  assetClassBreakdown?: AssetClassBreakdown;
+}
+
+// 給 AI 的 Payload 中的 Holding
+export interface PortfolioHoldingPayload {
+  symbol: string;
+  name: string;
+  quantity: number;
+  costBasis: number;
+  currentPrice: number;
+  marketValue: number;
+  weight: number;
+  unrealizedPnL: number;
+  unrealizedPnLPercent: number;
+  assetClass?: AssetClass;
+  bondCategory?: BondCategory;
+  couponRate?: number;
+  maturityDate?: string;
 }
 
 // 給 AI 的 Payload
@@ -111,17 +175,9 @@ export interface PortfolioPayload {
   totalCost: number;
   totalUnrealizedPnL: number;
   concentration: number;
-  holdings: {
-    symbol: string;
-    name: string;
-    quantity: number;
-    costBasis: number;
-    currentPrice: number;
-    marketValue: number;
-    weight: number;
-    unrealizedPnL: number;
-    unrealizedPnLPercent: number;
-  }[];
+  holdings: PortfolioHoldingPayload[];
+  // 資產配置摘要
+  assetClassBreakdown?: AssetClassBreakdown;
 }
 
 // API 請求與回應類型

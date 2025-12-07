@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { HoldingWithMetrics, Holding } from '@/lib/types';
+import { HoldingWithMetrics, Holding, ASSET_CLASS_LABELS, BOND_CATEGORY_LABELS } from '@/lib/types';
 import { formatCurrency, formatPercent } from '@/lib/portfolio';
 
 type SortKey = 'symbol' | 'quantity' | 'costBasis' | 'currentPrice' | 'marketValue' | 'pnl' | 'pnlPercent' | 'weight';
@@ -21,9 +21,13 @@ interface EditModalProps {
 }
 
 function EditModal({ holding, onSave, onClose }: EditModalProps) {
+  const isBond = holding.assetClass === 'bond';
   const [quantity, setQuantity] = useState(holding.quantity.toString());
   const [costBasis, setCostBasis] = useState(holding.costBasis.toString());
   const [note, setNote] = useState(holding.note || '');
+  const [currentPrice, setCurrentPrice] = useState(holding.currentPrice?.toString() || '');
+  const [couponRate, setCouponRate] = useState(holding.couponRate?.toString() || '');
+  const [maturityDate, setMaturityDate] = useState(holding.maturityDate || '');
 
   const handleSave = () => {
     const qty = parseFloat(quantity);
@@ -33,12 +37,30 @@ function EditModal({ holding, onSave, onClose }: EditModalProps) {
       return;
     }
 
-    onSave({
-      ...holding,
-      quantity: qty,
-      costBasis: cost,
-      note: note.trim() || undefined,
-    });
+    if (isBond) {
+      const price = parseFloat(currentPrice);
+      if (isNaN(price) || price <= 0) {
+        alert('請輸入有效的目前價格');
+        return;
+      }
+
+      onSave({
+        ...holding,
+        quantity: qty,
+        costBasis: cost,
+        currentPrice: price,
+        couponRate: couponRate ? parseFloat(couponRate) : undefined,
+        maturityDate: maturityDate || undefined,
+        note: note.trim() || undefined,
+      });
+    } else {
+      onSave({
+        ...holding,
+        quantity: qty,
+        costBasis: cost,
+        note: note.trim() || undefined,
+      });
+    }
     onClose();
   };
 
@@ -46,9 +68,18 @@ function EditModal({ holding, onSave, onClose }: EditModalProps) {
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="card p-6 w-full max-w-md animate-fade-in">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-slate-800">
-            編輯 {holding.symbol}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-slate-800">
+              編輯 {holding.symbol}
+            </h3>
+            {isBond && (
+              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                holding.bondCategory === 'ust' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+              }`}>
+                {BOND_CATEGORY_LABELS[holding.bondCategory!]}
+              </span>
+            )}
+          </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
             <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -58,20 +89,20 @@ function EditModal({ holding, onSave, onClose }: EditModalProps) {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              股數
+              {isBond ? '總面額 ($)' : '股數'}
             </label>
             <input
               type="number"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              step="0.01"
+              step={isBond ? '100' : '0.01'}
               min="0"
               className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500/20 focus:border-navy-500 transition-colors"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              成本價 ({holding.originalCurrency === 'TWD' ? 'TWD' : 'USD'})
+              {isBond ? '買入價格 (每$100)' : `成本價 (${holding.originalCurrency === 'TWD' ? 'TWD' : 'USD'})`}
             </label>
             <input
               type="number"
@@ -82,6 +113,50 @@ function EditModal({ holding, onSave, onClose }: EditModalProps) {
               className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500/20 focus:border-navy-500 transition-colors"
             />
           </div>
+          {isBond && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  目前價格 (每$100)
+                </label>
+                <input
+                  type="number"
+                  value={currentPrice}
+                  onChange={(e) => setCurrentPrice(e.target.value)}
+                  step="0.01"
+                  min="0"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500/20 focus:border-navy-500 transition-colors"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    票面利率 (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={couponRate}
+                    onChange={(e) => setCouponRate(e.target.value)}
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500/20 focus:border-navy-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    到期日
+                  </label>
+                  <input
+                    type="date"
+                    value={maturityDate}
+                    onChange={(e) => setMaturityDate(e.target.value)}
+                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500/20 focus:border-navy-500 transition-colors"
+                  />
+                </div>
+              </div>
+            </>
+          )}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               備註（選填）
@@ -110,6 +185,25 @@ function EditModal({ holding, onSave, onClose }: EditModalProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+// 資產類型標籤組件
+function AssetTypeBadge({ holding }: { holding: HoldingWithMetrics }) {
+  if (holding.assetClass === 'bond') {
+    const isUST = holding.bondCategory === 'ust';
+    return (
+      <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
+        isUST ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+      }`}>
+        {BOND_CATEGORY_LABELS[holding.bondCategory!]}
+      </span>
+    );
+  }
+  return (
+    <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-navy-100 text-navy-700">
+      {ASSET_CLASS_LABELS.equity}
+    </span>
   );
 }
 
@@ -151,8 +245,8 @@ export default function HoldingsTable({
           bVal = b.originalMarketValue || 0;
           break;
         case 'pnl':
-          aVal = (a.currentPrice - a.costBasis) * a.quantity;
-          bVal = (b.currentPrice - b.costBasis) * b.quantity;
+          aVal = a.unrealizedPnL;
+          bVal = b.unrealizedPnL;
           break;
         case 'pnlPercent':
           aVal = a.unrealizedPnLPercent;
@@ -208,6 +302,24 @@ export default function HoldingsTable({
     );
   };
 
+  // 格式化數量/面額顯示
+  const formatQuantity = (holding: HoldingWithMetrics): string => {
+    if (holding.assetClass === 'bond') {
+      return `$${holding.quantity.toLocaleString()}`;
+    }
+    return holding.quantity.toLocaleString();
+  };
+
+  // 取得數量/面額標籤
+  const getQuantityLabel = (holding: HoldingWithMetrics): string => {
+    return holding.assetClass === 'bond' ? '面額' : '股數';
+  };
+
+  // 取得成本標籤
+  const getCostLabel = (holding: HoldingWithMetrics): string => {
+    return holding.assetClass === 'bond' ? '買入價' : '成本';
+  };
+
   if (isLoading) {
     return (
       <div className="card overflow-hidden">
@@ -254,13 +366,13 @@ export default function HoldingsTable({
                   className="cursor-pointer hover:bg-slate-100 transition-colors select-none"
                   onClick={() => handleSort('symbol')}
                 >
-                  股票代號 <SortIndicator columnKey="symbol" />
+                  資產 <SortIndicator columnKey="symbol" />
                 </th>
                 <th
                   className="text-right cursor-pointer hover:bg-slate-100 transition-colors select-none"
                   onClick={() => handleSort('quantity')}
                 >
-                  股數 <SortIndicator columnKey="quantity" />
+                  數量 <SortIndicator columnKey="quantity" />
                 </th>
                 <th
                   className="text-right cursor-pointer hover:bg-slate-100 transition-colors select-none"
@@ -299,28 +411,50 @@ export default function HoldingsTable({
               {sortedHoldings.map((holding) => {
                 const isProfit = holding.unrealizedPnL >= 0;
                 const pnlColor = isProfit ? 'text-success-600' : 'text-danger-600';
+                const isBond = holding.assetClass === 'bond';
 
                 return (
                   <tr key={holding.id}>
                     <td>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-navy-100 flex items-center justify-center font-semibold text-navy-700 text-sm">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-sm ${
+                          isBond
+                            ? holding.bondCategory === 'ust'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-amber-100 text-amber-700'
+                            : 'bg-navy-100 text-navy-700'
+                        }`}>
                           {holding.symbol.slice(0, 2)}
                         </div>
                         <div>
-                          <div className="font-semibold text-slate-800">{holding.symbol}</div>
-                          <div className="text-xs text-slate-500 truncate max-w-[120px]">{holding.name}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-800">{holding.symbol}</span>
+                            <AssetTypeBadge holding={holding} />
+                          </div>
+                          <div className="text-xs text-slate-500 truncate max-w-[120px]">
+                            {holding.name}
+                            {isBond && holding.couponRate && (
+                              <span className="ml-1">({holding.couponRate}%)</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="text-right font-medium text-slate-700">
-                      {holding.quantity.toLocaleString()}
+                      <div>{formatQuantity(holding)}</div>
+                      <div className="text-xs text-slate-400">{getQuantityLabel(holding)}</div>
                     </td>
                     <td className="text-right text-slate-600">
-                      {formatCurrency(holding.costBasis, holding.originalCurrency || 'USD')}
+                      <div>{formatCurrency(holding.costBasis, holding.originalCurrency || 'USD')}</div>
+                      {isBond && <div className="text-xs text-slate-400">每$100</div>}
                     </td>
                     <td className="text-right font-semibold text-slate-800">
-                      {holding.currentPrice > 0 ? formatCurrency(holding.currentPrice, holding.originalCurrency || 'USD') : '--'}
+                      {holding.currentPrice > 0 ? (
+                        <>
+                          <div>{formatCurrency(holding.currentPrice, holding.originalCurrency || 'USD')}</div>
+                          {isBond && <div className="text-xs text-slate-400">每$100</div>}
+                        </>
+                      ) : '--'}
                     </td>
                     <td className="text-right text-slate-700">
                       {holding.originalMarketValue > 0 ? formatCurrency(holding.originalMarketValue, holding.originalCurrency || 'USD') : '--'}
@@ -328,7 +462,7 @@ export default function HoldingsTable({
                     <td className={`text-right ${pnlColor}`}>
                       {holding.currentPrice > 0 ? (
                         <div>
-                          <div className="font-semibold">{isProfit ? '+' : ''}{formatCurrency((holding.currentPrice - holding.costBasis) * holding.quantity, holding.originalCurrency || 'USD')}</div>
+                          <div className="font-semibold">{isProfit ? '+' : ''}{formatCurrency(holding.unrealizedPnL, holding.originalCurrency || 'USD')}</div>
                           <div className="text-xs">{formatPercent(holding.unrealizedPnLPercent)}</div>
                         </div>
                       ) : '--'}
@@ -370,17 +504,32 @@ export default function HoldingsTable({
           {sortedHoldings.map((holding) => {
             const isProfit = holding.unrealizedPnL >= 0;
             const pnlColor = isProfit ? 'text-success-600' : 'text-danger-600';
+            const isBond = holding.assetClass === 'bond';
 
             return (
               <div key={holding.id} className="p-4">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-navy-100 flex items-center justify-center font-semibold text-navy-700 text-sm">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-sm ${
+                      isBond
+                        ? holding.bondCategory === 'ust'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
+                        : 'bg-navy-100 text-navy-700'
+                    }`}>
                       {holding.symbol.slice(0, 2)}
                     </div>
                     <div>
-                      <div className="font-semibold text-slate-800">{holding.symbol}</div>
-                      <div className="text-xs text-slate-500">{holding.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-slate-800">{holding.symbol}</span>
+                        <AssetTypeBadge holding={holding} />
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {holding.name}
+                        {isBond && holding.couponRate && (
+                          <span className="ml-1">({holding.couponRate}%)</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -404,15 +553,15 @@ export default function HoldingsTable({
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="bg-slate-50 rounded-lg p-3">
-                    <span className="text-slate-500 text-xs">股數</span>
-                    <div className="text-slate-800 font-medium">{holding.quantity.toLocaleString()}</div>
+                    <span className="text-slate-500 text-xs">{getQuantityLabel(holding)}</span>
+                    <div className="text-slate-800 font-medium">{formatQuantity(holding)}</div>
                   </div>
                   <div className="bg-slate-50 rounded-lg p-3">
-                    <span className="text-slate-500 text-xs">成本</span>
+                    <span className="text-slate-500 text-xs">{getCostLabel(holding)}{isBond && ' (每$100)'}</span>
                     <div className="text-slate-800 font-medium">{formatCurrency(holding.costBasis, holding.originalCurrency || 'USD')}</div>
                   </div>
                   <div className="bg-slate-50 rounded-lg p-3">
-                    <span className="text-slate-500 text-xs">現價</span>
+                    <span className="text-slate-500 text-xs">現價{isBond && ' (每$100)'}</span>
                     <div className="text-slate-800 font-semibold">
                       {holding.currentPrice > 0 ? formatCurrency(holding.currentPrice, holding.originalCurrency || 'USD') : '--'}
                     </div>
@@ -428,8 +577,13 @@ export default function HoldingsTable({
                   <div className={`mt-3 p-3 rounded-lg ${isProfit ? 'bg-success-50' : 'bg-danger-50'} flex justify-between items-center`}>
                     <span className="text-sm text-slate-600">損益</span>
                     <span className={`font-semibold ${pnlColor}`}>
-                      {isProfit ? '+' : ''}{formatCurrency((holding.currentPrice - holding.costBasis) * holding.quantity, holding.originalCurrency || 'USD')} ({formatPercent(holding.unrealizedPnLPercent)})
+                      {isProfit ? '+' : ''}{formatCurrency(holding.unrealizedPnL, holding.originalCurrency || 'USD')} ({formatPercent(holding.unrealizedPnLPercent)})
                     </span>
+                  </div>
+                )}
+                {isBond && holding.maturityDate && (
+                  <div className="mt-2 text-xs text-slate-500 text-right">
+                    到期日: {holding.maturityDate}
                   </div>
                 )}
               </div>
