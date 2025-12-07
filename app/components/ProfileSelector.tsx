@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { Profile, RiskLevel, Market, Currency, MARKET_LABELS, CURRENCY_SYMBOLS } from '@/lib/types';
 
@@ -27,6 +28,11 @@ export default function ProfileSelector({
   const [newRiskLevel, setNewRiskLevel] = useState<RiskLevel>('balanced');
   const [newMarket, setNewMarket] = useState<Market>('US');
   const [newCurrency, setNewCurrency] = useState<Currency>('USD');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId);
 
@@ -147,8 +153,8 @@ export default function ProfileSelector({
       )}
 
       {/* 新增 Modal */}
-      {isCreating && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      {mounted && isCreating && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4 overflow-y-auto">
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto my-auto">
             <h3 className="text-lg font-semibold mb-4">新增投資組合</h3>
             <div className="space-y-4">
@@ -230,12 +236,13 @@ export default function ProfileSelector({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 編輯 Modal */}
-      {isEditing && activeProfile && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      {mounted && isEditing && activeProfile && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4 overflow-y-auto">
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto my-auto">
             <h3 className="text-lg font-semibold mb-4">編輯投資組合</h3>
             <div className="space-y-4">
@@ -290,7 +297,8 @@ export default function ProfileSelector({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
