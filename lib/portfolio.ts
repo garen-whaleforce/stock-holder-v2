@@ -76,6 +76,11 @@ export function calculateHoldingMetrics(
   const unrealizedPnL = originalMarketValue - cost;
   const unrealizedPnLPercent = calculatePnLPercent(holding, currentPrice);
 
+  // 計算總報酬（含累計配息）
+  const accumulatedCoupons = holding.accumulatedCoupons || 0;
+  const totalReturn = unrealizedPnL + accumulatedCoupons;
+  const totalReturnPercent = cost > 0 ? totalReturn / cost : 0;
+
   return {
     ...holding,
     currentPrice,
@@ -86,6 +91,8 @@ export function calculateHoldingMetrics(
     unrealizedPnL,
     originalUnrealizedPnL: unrealizedPnL, // 單一持股函數中，原始與轉換後相同
     unrealizedPnLPercent,
+    totalReturn,
+    totalReturnPercent,
   };
 }
 
@@ -145,6 +152,17 @@ export function calculateAllHoldingsMetrics(
 
     const unrealizedPnLPercent = calculatePnLPercent(holding, currentPrice);
 
+    // 計算總報酬（含累計配息）
+    const accumulatedCoupons = holding.accumulatedCoupons || 0;
+    const originalTotalReturn = originalPnL + accumulatedCoupons;
+    const totalReturn = convertedPnL + convertCurrency(
+      accumulatedCoupons,
+      originalCurrency,
+      baseCurrency,
+      exchangeRate
+    );
+    const totalReturnPercent = cost > 0 ? originalTotalReturn / cost : 0;
+
     return {
       ...holding,
       currentPrice,
@@ -155,6 +173,8 @@ export function calculateAllHoldingsMetrics(
       unrealizedPnL: convertedPnL,
       originalUnrealizedPnL: originalPnL, // 保存原始幣別損益
       unrealizedPnLPercent,
+      totalReturn,
+      totalReturnPercent,
     };
   });
 }
@@ -296,6 +316,9 @@ export function buildPortfolioPayload(
       bondCategory: h.bondCategory,
       couponRate: h.couponRate,
       maturityDate: h.maturityDate,
+      accumulatedCoupons: h.accumulatedCoupons,
+      totalReturn: h.totalReturn,
+      totalReturnPercent: h.totalReturnPercent,
     })),
     assetClassBreakdown: summary.assetClassBreakdown,
   };

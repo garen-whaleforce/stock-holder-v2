@@ -82,6 +82,7 @@ export interface Holding {
   couponRate?: number; // 票面利率（%）
   maturityDate?: string; // 到期日（YYYY-MM-DD）
   currentPrice?: number; // 目前價格（債券用：每100面額；手動輸入）
+  accumulatedCoupons?: number; // 累計配息（已收到的利息總額）
 }
 
 // 計算後的持股資料（包含現價與損益）
@@ -94,6 +95,9 @@ export interface HoldingWithMetrics extends Holding {
   unrealizedPnL: number; // 轉換後的損益（以 baseCurrency 計）
   originalUnrealizedPnL: number; // 原始幣別損益
   unrealizedPnLPercent: number;
+  // 總報酬（含累計配息）
+  totalReturn: number; // 總報酬 = 未實現損益 + 累計配息
+  totalReturnPercent: number; // 總報酬率
 }
 
 // 投資組合 Profile
@@ -165,6 +169,9 @@ export interface PortfolioHoldingPayload {
   bondCategory?: BondCategory;
   couponRate?: number;
   maturityDate?: string;
+  accumulatedCoupons?: number;
+  totalReturn?: number;
+  totalReturnPercent?: number;
 }
 
 // 給 AI 的 Payload

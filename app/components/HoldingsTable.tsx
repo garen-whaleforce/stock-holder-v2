@@ -28,6 +28,7 @@ function EditModal({ holding, onSave, onClose }: EditModalProps) {
   const [currentPrice, setCurrentPrice] = useState(holding.currentPrice?.toString() || '');
   const [couponRate, setCouponRate] = useState(holding.couponRate?.toString() || '');
   const [maturityDate, setMaturityDate] = useState(holding.maturityDate || '');
+  const [accumulatedCoupons, setAccumulatedCoupons] = useState(holding.accumulatedCoupons?.toString() || '');
 
   const handleSave = () => {
     const qty = parseFloat(quantity);
@@ -51,6 +52,7 @@ function EditModal({ holding, onSave, onClose }: EditModalProps) {
         currentPrice: price,
         couponRate: couponRate ? parseFloat(couponRate) : undefined,
         maturityDate: maturityDate || undefined,
+        accumulatedCoupons: accumulatedCoupons ? parseFloat(accumulatedCoupons) : undefined,
         note: note.trim() || undefined,
       });
     } else {
@@ -154,6 +156,21 @@ function EditModal({ holding, onSave, onClose }: EditModalProps) {
                     className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500/20 focus:border-navy-500 transition-colors"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  累計配息 ($)
+                </label>
+                <input
+                  type="number"
+                  value={accumulatedCoupons}
+                  onChange={(e) => setAccumulatedCoupons(e.target.value)}
+                  step="0.01"
+                  min="0"
+                  placeholder="已收到的利息總額"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500/20 focus:border-navy-500 transition-colors"
+                />
+                <p className="text-xs text-slate-500 mt-1">輸入已收到的利息總額，將計入總報酬</p>
               </div>
             </>
           )}
@@ -462,8 +479,25 @@ export default function HoldingsTable({
                     <td className={`text-right ${pnlColor}`}>
                       {holding.currentPrice > 0 ? (
                         <div>
-                          <div className="font-semibold">{isProfit ? '+' : ''}{formatCurrency(holding.originalUnrealizedPnL, holding.originalCurrency || 'USD')}</div>
-                          <div className="text-xs">{formatPercent(holding.unrealizedPnLPercent)}</div>
+                          {/* 公司債顯示總報酬（含累計配息）*/}
+                          {isBond && holding.bondCategory === 'corp' ? (
+                            <>
+                              <div className="font-semibold">
+                                {holding.totalReturn >= 0 ? '+' : ''}{formatCurrency(holding.totalReturn, holding.originalCurrency || 'USD')}
+                              </div>
+                              <div className="text-xs">{formatPercent(holding.totalReturnPercent)}</div>
+                              {holding.accumulatedCoupons && holding.accumulatedCoupons > 0 && (
+                                <div className="text-[10px] text-slate-500 mt-0.5">
+                                  含配息 ${holding.accumulatedCoupons.toLocaleString()}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <div className="font-semibold">{isProfit ? '+' : ''}{formatCurrency(holding.originalUnrealizedPnL, holding.originalCurrency || 'USD')}</div>
+                              <div className="text-xs">{formatPercent(holding.unrealizedPnLPercent)}</div>
+                            </>
+                          )}
                         </div>
                       ) : '--'}
                     </td>
@@ -574,11 +608,34 @@ export default function HoldingsTable({
                   </div>
                 </div>
                 {holding.currentPrice > 0 && (
-                  <div className={`mt-3 p-3 rounded-lg ${isProfit ? 'bg-green-50' : 'bg-red-50'} flex justify-between items-center`}>
-                    <span className="text-sm text-slate-600">損益</span>
-                    <span className={`font-semibold ${pnlColor}`}>
-                      {isProfit ? '+' : ''}{formatCurrency(holding.originalUnrealizedPnL, holding.originalCurrency || 'USD')} ({formatPercent(holding.unrealizedPnLPercent)})
-                    </span>
+                  <div className={`mt-3 p-3 rounded-lg ${
+                    isBond && holding.bondCategory === 'corp'
+                      ? (holding.totalReturn >= 0 ? 'bg-green-50' : 'bg-red-50')
+                      : (isProfit ? 'bg-green-50' : 'bg-red-50')
+                  }`}>
+                    {/* 公司債顯示總報酬（含累計配息）*/}
+                    {isBond && holding.bondCategory === 'corp' ? (
+                      <div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-slate-600">總報酬</span>
+                          <span className={`font-semibold ${holding.totalReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {holding.totalReturn >= 0 ? '+' : ''}{formatCurrency(holding.totalReturn, holding.originalCurrency || 'USD')} ({formatPercent(holding.totalReturnPercent)})
+                          </span>
+                        </div>
+                        {holding.accumulatedCoupons && holding.accumulatedCoupons > 0 && (
+                          <div className="text-xs text-slate-500 text-right mt-1">
+                            含配息 ${holding.accumulatedCoupons.toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-600">損益</span>
+                        <span className={`font-semibold ${pnlColor}`}>
+                          {isProfit ? '+' : ''}{formatCurrency(holding.originalUnrealizedPnL, holding.originalCurrency || 'USD')} ({formatPercent(holding.unrealizedPnLPercent)})
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
                 {isBond && holding.maturityDate && (
