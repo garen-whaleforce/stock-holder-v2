@@ -410,7 +410,7 @@ export default function HoldingsTable({
             <tbody>
               {sortedHoldings.map((holding) => {
                 const isProfit = holding.originalUnrealizedPnL >= 0;
-                const pnlColor = isProfit ? 'text-success-600' : 'text-danger-600';
+                const pnlColor = isProfit ? 'text-green-600' : 'text-red-600';
                 const isBond = holding.assetClass === 'bond';
 
                 return (
@@ -503,7 +503,7 @@ export default function HoldingsTable({
         <div className="md:hidden divide-y divide-slate-100">
           {sortedHoldings.map((holding) => {
             const isProfit = holding.originalUnrealizedPnL >= 0;
-            const pnlColor = isProfit ? 'text-success-600' : 'text-danger-600';
+            const pnlColor = isProfit ? 'text-green-600' : 'text-red-600';
             const isBond = holding.assetClass === 'bond';
 
             return (
@@ -574,7 +574,7 @@ export default function HoldingsTable({
                   </div>
                 </div>
                 {holding.currentPrice > 0 && (
-                  <div className={`mt-3 p-3 rounded-lg ${isProfit ? 'bg-success-50' : 'bg-danger-50'} flex justify-between items-center`}>
+                  <div className={`mt-3 p-3 rounded-lg ${isProfit ? 'bg-green-50' : 'bg-red-50'} flex justify-between items-center`}>
                     <span className="text-sm text-slate-600">損益</span>
                     <span className={`font-semibold ${pnlColor}`}>
                       {isProfit ? '+' : ''}{formatCurrency(holding.originalUnrealizedPnL, holding.originalCurrency || 'USD')} ({formatPercent(holding.unrealizedPnLPercent)})

@@ -5,15 +5,15 @@ const config = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   safelist: [
-    // P&L colors - dynamically used
-    'text-success-600',
-    'text-danger-600',
-    'bg-success-50',
-    'bg-success-100',
-    'bg-danger-50',
-    'bg-danger-100',
-    'border-success-200',
-    'border-danger-200',
+    // P&L colors - dynamically used (using standard Tailwind colors)
+    'text-green-600',
+    'text-red-600',
+    'bg-green-50',
+    'bg-green-100',
+    'bg-red-50',
+    'bg-red-100',
+    'border-green-200',
+    'border-red-200',
   ],
   darkMode: 'class',
   theme: {

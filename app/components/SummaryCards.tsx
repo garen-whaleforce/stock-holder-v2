@@ -116,25 +116,25 @@ export default function SummaryCards({ summary, isLoading, baseCurrency = 'USD',
         </div>
 
         {/* P&L */}
-        <div className={`card p-5 ${isProfit ? 'border-success-200 bg-success-50/30' : 'border-danger-200 bg-danger-50/30'}`}>
+        <div className={`card p-5 ${isProfit ? 'border-green-200 bg-green-50/30' : 'border-red-200 bg-red-50/30'}`}>
           <div className="flex items-center justify-between mb-3">
             <p className="stat-label">未實現損益</p>
-            <div className={`w-8 h-8 rounded-lg ${isProfit ? 'bg-success-100' : 'bg-danger-100'} flex items-center justify-center`}>
+            <div className={`w-8 h-8 rounded-lg ${isProfit ? 'bg-green-100' : 'bg-red-100'} flex items-center justify-center`}>
               {isProfit ? (
-                <svg className="w-4 h-4 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               ) : (
-                <svg className="w-4 h-4 text-danger-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
                 </svg>
               )}
             </div>
           </div>
-          <p className={`stat-value ${isProfit ? 'text-success-600' : 'text-danger-600'}`}>
+          <p className={`stat-value ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
             {isProfit ? '+' : ''}{formatCurrency(convertAmount(summary.totalUnrealizedPnL), displayCurrency)}
           </p>
-          <p className={`text-sm font-semibold mt-2 ${isProfit ? 'text-success-600' : 'text-danger-600'}`}>
+          <p className={`text-sm font-semibold mt-2 ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
             {formatPercent(summary.totalUnrealizedPnLPercent)}
           </p>
         </div>
