@@ -4,6 +4,17 @@ const config = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  safelist: [
+    // P&L colors - dynamically used
+    'text-success-600',
+    'text-danger-600',
+    'bg-success-50',
+    'bg-success-100',
+    'bg-danger-50',
+    'bg-danger-100',
+    'border-success-200',
+    'border-danger-200',
+  ],
   darkMode: 'class',
   theme: {
     extend: {
