@@ -91,7 +91,8 @@ export interface HoldingWithMetrics extends Holding {
   marketValue: number; // 轉換後的市值（以 baseCurrency 計）
   originalMarketValue: number; // 原始幣別市值
   weight: number;
-  unrealizedPnL: number; // 轉換後的損益
+  unrealizedPnL: number; // 轉換後的損益（以 baseCurrency 計）
+  originalUnrealizedPnL: number; // 原始幣別損益
   unrealizedPnLPercent: number;
 }
 

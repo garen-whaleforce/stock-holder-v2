@@ -84,6 +84,7 @@ export function calculateHoldingMetrics(
     originalMarketValue,
     weight,
     unrealizedPnL,
+    originalUnrealizedPnL: unrealizedPnL, // 單一持股函數中，原始與轉換後相同
     unrealizedPnLPercent,
   };
 }
@@ -142,14 +143,6 @@ export function calculateAllHoldingsMetrics(
       exchangeRate
     );
 
-    // 轉換成本到 baseCurrency
-    const convertedCost = convertCurrency(
-      cost,
-      originalCurrency,
-      baseCurrency,
-      exchangeRate
-    );
-
     const unrealizedPnLPercent = calculatePnLPercent(holding, currentPrice);
 
     return {
@@ -160,6 +153,7 @@ export function calculateAllHoldingsMetrics(
       originalMarketValue,
       weight,
       unrealizedPnL: convertedPnL,
+      originalUnrealizedPnL: originalPnL, // 保存原始幣別損益
       unrealizedPnLPercent,
     };
   });

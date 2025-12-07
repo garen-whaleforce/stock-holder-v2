@@ -409,7 +409,7 @@ export default function HoldingsTable({
             </thead>
             <tbody>
               {sortedHoldings.map((holding) => {
-                const isProfit = holding.unrealizedPnL >= 0;
+                const isProfit = holding.originalUnrealizedPnL >= 0;
                 const pnlColor = isProfit ? 'text-success-600' : 'text-danger-600';
                 const isBond = holding.assetClass === 'bond';
 
@@ -462,7 +462,7 @@ export default function HoldingsTable({
                     <td className={`text-right ${pnlColor}`}>
                       {holding.currentPrice > 0 ? (
                         <div>
-                          <div className="font-semibold">{isProfit ? '+' : ''}{formatCurrency(holding.unrealizedPnL, holding.originalCurrency || 'USD')}</div>
+                          <div className="font-semibold">{isProfit ? '+' : ''}{formatCurrency(holding.originalUnrealizedPnL, holding.originalCurrency || 'USD')}</div>
                           <div className="text-xs">{formatPercent(holding.unrealizedPnLPercent)}</div>
                         </div>
                       ) : '--'}
@@ -502,7 +502,7 @@ export default function HoldingsTable({
         {/* Mobile Card List */}
         <div className="md:hidden divide-y divide-slate-100">
           {sortedHoldings.map((holding) => {
-            const isProfit = holding.unrealizedPnL >= 0;
+            const isProfit = holding.originalUnrealizedPnL >= 0;
             const pnlColor = isProfit ? 'text-success-600' : 'text-danger-600';
             const isBond = holding.assetClass === 'bond';
 
@@ -577,7 +577,7 @@ export default function HoldingsTable({
                   <div className={`mt-3 p-3 rounded-lg ${isProfit ? 'bg-success-50' : 'bg-danger-50'} flex justify-between items-center`}>
                     <span className="text-sm text-slate-600">損益</span>
                     <span className={`font-semibold ${pnlColor}`}>
-                      {isProfit ? '+' : ''}{formatCurrency(holding.unrealizedPnL, holding.originalCurrency || 'USD')} ({formatPercent(holding.unrealizedPnLPercent)})
+                      {isProfit ? '+' : ''}{formatCurrency(holding.originalUnrealizedPnL, holding.originalCurrency || 'USD')} ({formatPercent(holding.unrealizedPnLPercent)})
                     </span>
                   </div>
                 )}
